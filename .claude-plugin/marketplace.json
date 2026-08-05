@@ -1,0 +1,16 @@
+{
+  "name": "template-ia",
+  "owner": {
+    "name": "SudacaDev"
+  },
+  "metadata": {
+    "description": "GRAPH — a design pattern for agentic architectures (Grounded, Reviewable, Agnostic, Persistent, Hierarchical), installable as a Claude Code plugin."
+  },
+  "plugins": [
+    {
+      "name": "template-ia",
+      "source": ".",
+      "description": "GRAPH pattern bootstrapper: versioned hierarchical knowledge graph with human-review gates, autonomous-loop circuit breakers, and a built-in stack-agnostic code indexer. Greenfield or brownfield, any language."
+    }
+  ]
+}

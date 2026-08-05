@@ -1,0 +1,20 @@
+{
+  "name": "template-ia",
+  "interface": {
+    "displayName": "GRAPH — agentic architecture pattern"
+  },
+  "plugins": [
+    {
+      "name": "template-ia",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_FIRST_USE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

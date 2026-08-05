@@ -1,93 +1,117 @@
-# template-ia
+# GRAPH
 
+**Un patrón de diseño para arquitecturas agénticas — análogo a SOLID, pero
+para cómo se comporta un agente de IA autónomo, no para cómo se escribe una
+clase.**
 
+Si le das autonomía a un agente de IA sobre tu proyecto, en algún momento va
+a: inventar contexto que no tiene, aplicar cambios grandes sin que nadie los
+revise, quedarse en un loop repitiendo lo mismo, u olvidarse todo entre una
+sesión y la otra. GRAPH es un conjunto de 5 reglas + un mecanismo de freno
+para que eso no pase — instalable en cualquier proyecto en un comando.
 
-## Getting started
+## Instalación
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+Ver [INSTALL.md](./INSTALL.md).
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Las 5 letras
 
-## Add your files
+- **G — Grounded**: el agente consulta el conocimiento real del proyecto
+  antes de actuar, no inventa ni asume.
+- **R — Reviewable**: los cambios que importan quedan esperando tu
+  aprobación explícita antes de aplicarse.
+- **A — Agnostic**: no depende de una sola herramienta — funciona igual en
+  Claude Code, Cursor, Antigravity, o lo que uses.
+- **P — Persistent**: el contexto sobrevive entre sesiones, no se repite
+  desde cero cada vez.
+- **H — Hierarchical**: el conocimiento del proyecto se organiza por
+  comunidades/nodos, con su historial pegado al lado.
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+Más un extra que no entra en la sigla: **Circuit Breaker** — el freno de
+mano que corta si el agente encadena demasiadas acciones seguidas o se
+queda repitiendo lo mismo sin avanzar.
+
+Spec completa (una vez instalado): `.agents/graph/GRAPH.md`.
+Explicación en criollo: `.agents/graph/README.md`.
+
+## Qué instala
 
 ```
-cd existing_repo
-git remote add origin https://gitlab-ee.agil.movistar.com.ar/cloudersdesarrollos/investigacion/ia/template-ia.git
-git branch -M master
-git push -uf origin master
+.agents/
+├── graph/
+│   ├── GRAPH.md              → spec completa del patrón
+│   ├── README.md             → explicación simple
+│   ├── circuit-breaker.yml   → config del freno de mano (protegida por gate)
+│   ├── knowledge/            → grafo real del código, indexado automáticamente
+│   ├── gates/
+│   │   ├── policy.yml        → severidades de acciones (low/medium/high/critical)
+│   │   ├── pending/          → propuestas esperando aprobación humana
+│   │   └── approved/         → lo ya aprobado
+│   ├── sessions/
+│   │   ├── progress.md       → qué se hizo, sesión por sesión
+│   │   └── tasks.md          → qué falta
+│   └── enforcement/          → hooks que hacen cumplir el circuit breaker de verdad
+└── roles/                    → planner / executor / reviewer
 ```
 
-## Integrate with your tools
+Cuando un usuario escribe `#task` en su prompt, esa tarea debe agregarse
+como una entrada nueva en `.agents/graph/sessions/tasks.md`. No basta con
+mencionarlo en la conversación: el backlog real se escribe en este archivo.
 
-* [Set up project integrations](https://gitlab-ee.agil.movistar.com.ar/cloudersdesarrollos/investigacion/ia/template-ia/-/settings/integrations)
+El prompt `#run` ordena la ejecución de tareas pendientes en `.agents/graph/sessions/tasks.md`, y
+el resultado debe quedar registrado en `.agents/graph/sessions/progress.md`.
 
-## Collaborate with your team
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## Convenciones de uso de `#task` y `#run`
 
-## Test and Deploy
+- `#task` agrega una nueva tarea al backlog real en `.agents/graph/sessions/tasks.md`.
+- La metadata de la tarea puede ir en el mismo prompt como pares `key:value`.
+- Cuando la tarea trae metadata, el script la guarda como un bloque indentado debajo de la linea de la tarea.
+- `#run` marca la siguiente tarea pendiente, o la que indiques con `#run 2` / `#run all`, y actualiza `.agents/graph/sessions/progress.md`.
 
-Use the built-in continuous integration in GitLab.
+Ejemplos:
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```text
+#task Crear page path:app/pages/home.tsx type:page priority:high
+#task Revisar hook file:hooks/stagnation-hook.sh type:service priority:medium
+#run
+#run 2: listo para integrar
+```
 
-***
+## Por qué esto y no otra cosa
 
-# Editing this README
+Ninguna pieza individual es nueva — grounding vía knowledge graphs,
+human-in-the-loop, circuit breakers para agentes, y el propio `AGENTS.md`
+(que es un estándar real, mantenido por la Linux Foundation) ya existen por
+separado en la industria. GRAPH es la curaduría de esas piezas en un solo
+patrón instalable, con un checklist de auto-auditoría de 6 puntos para
+saber si tu proyecto realmente lo cumple — no solo si lo tiene declarado en
+un YAML.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Indexador propio, sin dependencias de terceros
 
-## Suggestions for a good README
+El indexado de código (`knowledge/nodes/`, `knowledge/communities/`) lo
+hace un script propio del plugin, usando solo la librería estándar de
+Python — nada de instalar ni depender de ninguna herramienta externa. Eso
+es lo que hace posible el principio **A (Agnostic)**: cualquiera lo corre,
+en cualquier proyecto, sin pedirle nada más que tener Python 3.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## Contribuir
 
-## Name
-Choose a self-explaining name for your project.
+Es un patrón pensado para ser colaborativo — si mejorás el indexador, los
+hooks, o encontrás un bug real (probado, no teórico), un PR es bienvenido.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## Licencia
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+MIT — ver [LICENSE](./LICENSE).
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Release Package
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+To build a clean bundle for publishing, run `python3 scripts/build-release.py`.
+The output is source-only and excludes runtime artifacts like `.agents/` and
+local test output.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+The release script also supports `--versioned`, which emits a sibling bundle named with the plugin version (for example `template-ia-release-v3.1.0`) and validates that both plugin manifests share the same semver first.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+For the end-to-end publishing checklist, see [RELEASE.md](./RELEASE.md).
