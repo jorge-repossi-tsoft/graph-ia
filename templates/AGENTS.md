@@ -14,9 +14,11 @@ Este proyecto sigue el patrón **GRAPH**. Antes de actuar:
 8. Si el usuario escribe un mensaje que empieza con `#run`, ejecutá las tareas pendientes de `.agents/graph/sessions/tasks.md` en orden, una por vez. Si incluye un número, ejecutá solo esa tarea puntual. `#run-all` ejecuta todas las pendientes de una vez.
 9. Si el usuario escribe `#done [N]`, marcá esa tarea (o la primera pendiente si no hay número) como completada `[x]` sin ejecutarla, y registrá el cierre en `progress.md`. Si escribe `#skip [N]: <motivo>`, sacala de pendientes y movela a `### Tareas salteadas (con motivo)` en `tasks.md`, con motivo y fecha, dejando también rastro en `progress.md`. Si escribe `#note [N]: <texto>`, agregá la nota fechada como línea indentada debajo de la tarea, sin cambiar su estado.
 
+<!-- template-ia:legacy-line -->
 ## Bridges específicos por herramienta
 - `CLAUDE.md` — bridge para Claude Code, apunta acá.
 - (agregar bridges equivalentes para otras herramientas según se sumen)
 
 ## Regla de oro
 Si una acción no está clasificada en `.agents/graph/gates/policy.yml`, tratala como severidad `high` por defecto. Nunca asumas bajo riesgo por omisión.
+<!-- /template-ia:bridge-block -->

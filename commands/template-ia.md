@@ -118,19 +118,34 @@ as documentation of what's enforcing what.
 ### 4. Place the AGENTS.md / CLAUDE.md bridge
 
 Claude Code and equivalent tools auto-discover `AGENTS.md`/`CLAUDE.md` from
-the **repo root**, not from inside `.agents/`. So:
+the **repo root**, not from inside `.agents/`. The bridge lives inside a
+managed block delimited by `<!-- template-ia:bridge-block -->` and
+`<!-- /template-ia:bridge-block -->`, so it can be found and replaced later
+without touching anything else in the file:
 
 1. Look for `AGENTS.md` first at repo root, then at `.agents/AGENTS.md`.
-2. If found at either location: check if it already contains the marker
-   `<!-- template-ia:bridge-block -->`. If yes, skip (already bridged). If
-   no, **append** (never rewrite existing content) a block pointing to
-   `graph/GRAPH.md`, `roles/registry.yml`, `graph/gates/policy.yml`,
-   `graph/sessions/progress.md`/`tasks.md` — using the `.agents/` prefix
-   only if the file lives at repo root, no prefix if it's already inside
-   `.agents/`. If `.agents/graph/legacy-system.md` exists (from step 0),
-   add a line pointing to it too.
+2. If found at either location:
+   - No start marker present: **append** (never rewrite existing content) a
+     managed block — start marker, body pointing to `graph/GRAPH.md`,
+     `roles/registry.yml`, `graph/gates/policy.yml`,
+     `graph/sessions/progress.md`/`tasks.md`, end marker — using the
+     `.agents/` prefix only if the file lives at repo root, no prefix if
+     it's already inside `.agents/`. If `.agents/graph/legacy-system.md`
+     exists (from step 0), add a line pointing to it too.
+   - Start marker present but content between the markers (or, for a
+     pre-existing install with no end marker yet, from the start marker to
+     end of file) differs from the current plugin's block: this file is
+     **stale**. Leave it untouched on a plain install/mode run and report
+     it as stale — don't silently rewrite it here. It only gets
+     resynchronized by Step 8 (`--update-docs`), which replaces exactly the
+     managed block in place and leaves everything outside it — including
+     content the user added after the block — untouched.
+   - Block already matches the current plugin version: skip, nothing to do.
 3. If not found anywhere: copy `${CLAUDE_PLUGIN_ROOT}/templates/AGENTS.md`
    to the repo root (not into `.agents/`) — that's where tools discover it.
+   That template file already contains the managed block, start and end
+   marker included — don't append anything extra to it, or the block will
+   be duplicated.
 4. Repeat steps 1–3 identically for `CLAUDE.md`.
 
 ### 5. Stamp the detected mode into tasks.md
@@ -188,6 +203,17 @@ copy the destination to `<file>.bak` first (so nothing is silently lost),
 then overwrite it. If content is already identical, skip silently — no
 need for a backup of something that wasn't going to change.
 
+This is also the entry point that resynchronizes the AGENTS.md/CLAUDE.md
+managed block from Step 4: find the content between
+`<!-- template-ia:bridge-block -->` and `<!-- /template-ia:bridge-block -->`
+(or, for a file bridged before the end marker existed, from the start
+marker to end of file) and replace exactly that span with the current
+plugin's block — nothing before it, nothing the user added after it, gets
+touched. If the block already matches, skip silently, same as the docs
+above; this makes `--update-docs` safe to run repeatedly (idempotent, no
+duplicated blocks, no `.bak` needed for this part since the block is
+plugin-owned, not user-owned).
+
 **Never** touch with this flag: `circuit-breaker.yml`, `gates/policy.yml`,
 `roles/registry.yml` (may have project-specific role tweaks),
 `sessions/progress.md`, `sessions/tasks.md`. Those are either protected
@@ -195,7 +221,8 @@ config (need the gate/approval flow to edit) or the user's own project
 state — a docs refresh has no business touching either.
 
 Report which files were updated and which `.bak` files were created, if
-any.
+any, plus whether the AGENTS.md/CLAUDE.md bridge blocks were resynced,
+already up to date, or newly created.
 
 Never invent node/edge/community counts — compute them from what actually
 ran, or state plainly that they're not available yet.
