@@ -86,6 +86,10 @@ En la práctica, casi todo pasa solo:
 ### Tokens de control en el prompt
 - `#task` agrega una nueva tarea al backlog en `graph/sessions/tasks.md`.
 - `#run` ejecuta tareas pendientes de `graph/sessions/tasks.md`, una por vez.
+- `#run-all` ejecuta todas las pendientes de una vez.
+- `#done` marca una tarea como completada sin ejecutarla.
+- `#skip` saltea una tarea, dejándola registrada con motivo y fecha.
+- `#note` agrega una nota fechada a una tarea pendiente.
 - Si una tarea se completa, debe cambiar su estado a `[x]` en `tasks.md` y
   dejar registro en `graph/sessions/progress.md`.
 
@@ -93,12 +97,17 @@ Eso es todo. El resto (`GRAPH.md`, `policy.yml`, `registry.yml`) es la letra
 chica para cuando quieras ajustar algo puntual.
 
 
-## Convenciones de uso de `#task` y `#run`
+## Convenciones de uso de los comandos de backlog
 
 - `#task` agrega una nueva tarea al backlog real en `.agents/graph/sessions/tasks.md`.
 - La metadata de la tarea puede ir en el mismo prompt como pares `key:value`.
 - Cuando la tarea trae metadata, el script la guarda como un bloque indentado debajo de la linea de la tarea.
 - `#run` marca la siguiente tarea pendiente, o la que indiques con `#run 2` / `#run all`, y actualiza `.agents/graph/sessions/progress.md`.
+- `#run-all` es el alias directo de `#run all`: cierra todas las pendientes.
+- `#done [N]` marca una tarea como completada sin ejecutarla (útil si ya se resolvió por otro camino); registra el cierre en `progress.md`.
+- `#skip [N]: <motivo>` saca la tarea de pendientes y la mueve a `### Tareas salteadas (con motivo)` con motivo y fecha.
+- `#note [N]: <texto>` agrega una nota fechada debajo de la tarea, sin cambiar su estado.
+- En todos los casos `N` es la posición dentro de las pendientes; si se omite, aplica sobre la primera.
 
 Ejemplos:
 
@@ -107,4 +116,8 @@ Ejemplos:
 #task Revisar hook file:hooks/stagnation-hook.sh type:service priority:medium
 #run
 #run 2: listo para integrar
+#run-all: cierre de sprint
+#done 2: ya estaba resuelta en otra rama
+#skip 3: fuera de alcance del sprint
+#note 1: falta definir el endpoint
 ```
