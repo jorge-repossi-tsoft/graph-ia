@@ -6,8 +6,20 @@ Uso:
   python3 scripts/graph-prompt.py [repo_root] "#task <descripcion>"
   python3 scripts/graph-prompt.py [repo_root] "#run"
   python3 scripts/graph-prompt.py [repo_root] "#run 2: resultado breve"
+  python3 scripts/graph-prompt.py [repo_root] "#run-all: cierre de sprint"
+  python3 scripts/graph-prompt.py [repo_root] "#done 2: ya estaba resuelta"
+  python3 scripts/graph-prompt.py [repo_root] "#skip 3: fuera de alcance"
+  python3 scripts/graph-prompt.py [repo_root] "#note 1: falta definir el endpoint"
 
-Este script materializa las ordenes `#task` y `#run` en archivos persistentes:
+Comandos soportados sobre el backlog del proyecto:
+  #task     agrega una tarea nueva a `Tareas pendientes`.
+  #run      ejecuta (marca completada) la siguiente pendiente, o `#run N`.
+  #run-all  ejecuta todas las pendientes (alias de `#run all`).
+  #done     marca una tarea como completada sin pasar por ejecucion.
+  #skip     saltea una tarea: sale de pendientes y queda registrada aparte.
+  #note     agrega una nota fechada debajo de una tarea pendiente.
+
+Este script materializa esas ordenes en archivos persistentes:
 `.agents/graph/sessions/tasks.md` y `.agents/graph/sessions/progress.md`.
 """
 
@@ -29,8 +41,9 @@ TASKS_SKELETON = """# Tasks
 
 > Archivo de backlog para GRAPH.
 >
-> `#task` agrega tareas nuevas aqui. `#run` marca tareas como completadas y
-> actualiza `progress.md`.
+> `#task` agrega tareas nuevas aqui. `#run` / `#run-all` / `#done` marcan
+> tareas como completadas y actualizan `progress.md`. `#skip` saltea una
+> tarea dejando registro, y `#note` agrega una nota fechada a una tarea.
 
 ## Instalacion del patron (marcar al hacer template-ia)
 - [ ] Modo detectado: greenfield | brownfield
@@ -47,6 +60,8 @@ TASKS_SKELETON = """# Tasks
 ### Tareas en curso
 
 ### Tareas completadas (referenciar en `progress.md`)
+
+### Tareas salteadas (con motivo)
 """
 
 PROGRESS_SKELETON = """# Progress
@@ -83,10 +98,15 @@ PROGRESS_SKELETON = """# Progress
 
 SECTION_PENDING = "### Tareas pendientes"
 SECTION_COMPLETED_HEADER = "### Tareas completadas (referenciar en `progress.md`)"
+SECTION_SKIPPED_HEADER = "### Tareas salteadas (con motivo)"
 SECTION_HISTORY_HEADER = "## Historial de ejecuciones"
 
 TASK_PATTERN = re.compile(r"^\s*#task\s+(.+)$", re.IGNORECASE | re.DOTALL)
+RUN_ALL_PATTERN = re.compile(r"^\s*#run-all(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
 RUN_PATTERN = re.compile(r"^\s*#run(?:\s+(\d+|all))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
+DONE_PATTERN = re.compile(r"^\s*#done(?:\s+(\d+|all))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
+SKIP_PATTERN = re.compile(r"^\s*#skip(?:\s+(\d+))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
+NOTE_PATTERN = re.compile(r"^\s*#note(?:\s+(\d+)(?=\s|[:\-]))?\s*[:\-]?\s*(.+)$", re.IGNORECASE | re.DOTALL)
 METADATA_PATTERN = re.compile(r"(?P<key>[a-zA-Z_][\w\-]*):(?P<value>\"[^\"]+\"|[^\s]+)")
 METADATA_LINE_PATTERN = re.compile(r"^\s{4,}-\s+(?P<key>[a-zA-Z_][\w\-]*):\s*(?P<value>\"[^\"]+\"|.+)$")
 
@@ -360,11 +380,32 @@ def parse_prompt(prompt: str) -> Tuple[str, Optional[str], Dict[str, str], Optio
         title, metadata = parse_task_prompt(task_text)
         return "task", title, metadata, None
 
+    run_all_match = RUN_ALL_PATTERN.match(prompt)
+    if run_all_match:
+        return "run", "all", {}, normalize_task_text(run_all_match.group(1) or "")
+
     run_match = RUN_PATTERN.match(prompt)
     if run_match:
         return "run", run_match.group(1), {}, normalize_task_text(run_match.group(2) or "")
 
-    raise ValueError("El prompt debe empezar con '#task' o '#run'.")
+    done_match = DONE_PATTERN.match(prompt)
+    if done_match:
+        return "done", done_match.group(1), {}, normalize_task_text(done_match.group(2) or "")
+
+    skip_match = SKIP_PATTERN.match(prompt)
+    if skip_match:
+        return "skip", skip_match.group(1), {}, normalize_task_text(skip_match.group(2) or "")
+
+    note_match = NOTE_PATTERN.match(prompt)
+    if note_match:
+        note_text = normalize_task_text(note_match.group(2) or "")
+        if not note_text or (note_match.group(1) is None and note_text.isdigit()):
+            raise ValueError("La nota necesita texto: '#note [N]: <texto>'.")
+        return "note", note_match.group(1), {}, note_text
+
+    raise ValueError(
+        "El prompt debe empezar con '#task', '#run', '#run-all', '#done', '#skip' o '#note'."
+    )
 
 
 def update_progress_metadata(lines: List[str], backlog_count: int, run_date: str) -> List[str]:
@@ -446,7 +487,15 @@ def append_completed_record(lines: List[str], completed_line: str) -> List[str]:
     return lines
 
 
-def append_run_history(lines: List[str], run_target: str, completed_tasks: List[str], backlog_count: int, run_date: str) -> List[str]:
+def append_run_history(
+    lines: List[str],
+    run_target: str,
+    completed_tasks: List[str],
+    backlog_count: int,
+    run_date: str,
+    label: str = "Tareas completadas",
+    marker: str = "x",
+) -> List[str]:
     section_start = find_section(lines, SECTION_HISTORY_HEADER)
     if section_start is None:
         if lines and not lines[-1].endswith("\n"):
@@ -460,16 +509,16 @@ def append_run_history(lines: List[str], run_target: str, completed_tasks: List[
         f"### {run_date}\n",
         f"- Comando: `{run_target}`\n",
         f"- Backlog restante: {backlog_count}\n",
-        "- Tareas completadas:\n",
+        f"- {label}:\n",
     ]
     for text in completed_tasks:
-        history_entry.append(f"  - [x] {text}\n")
+        history_entry.append(f"  - [{marker}] {text}\n")
     history_entry.append("\n")
     lines[insert_at:insert_at] = history_entry
     return lines
 
 
-def complete_tasks(root: str, run_target: Optional[str], summary: str) -> List[str]:
+def complete_tasks(root: str, run_target: Optional[str], summary: str, command: str = "#run") -> List[str]:
     tasks_path = Path(root) / TASKS_FILE_REL
     progress_path = Path(root) / PROGRESS_FILE_REL
     ensure_file(tasks_path, TASKS_SKELETON)
@@ -498,12 +547,86 @@ def complete_tasks(root: str, run_target: Optional[str], summary: str) -> List[s
     progress_lines = read_lines(progress_path)
     run_date = today_iso()
     progress_lines = update_progress_metadata(progress_lines, pending_count, run_date)
-    progress_lines = append_run_history(progress_lines, f"#run {run_target or ''}".strip(), completed_texts, pending_count, run_date)
+    progress_lines = append_run_history(progress_lines, f"{command} {run_target or ''}".strip(), completed_texts, pending_count, run_date)
     progress_lines = replace_section(progress_lines, "## Ultima sesion", render_last_session(run_date, summary, completed_texts, pending_tasks))
     progress_lines = replace_section(progress_lines, "## Proxima sesion deberia", render_next_session(pending_tasks))
     write_lines(progress_path, progress_lines)
 
     return completed_texts
+
+
+def resolve_single_target(pending_tasks: List[TaskEntry], target: Optional[str], command: str) -> TaskEntry:
+    if not pending_tasks:
+        raise ValueError(f"No hay tareas pendientes para {command}.")
+    if target is None:
+        return pending_tasks[0]
+    ordinal = int(target)
+    if ordinal < 1 or ordinal > len(pending_tasks):
+        raise ValueError(f"Numero de tarea invalido: {ordinal}. Hay {len(pending_tasks)} tareas pendientes.")
+    return pending_tasks[ordinal - 1]
+
+
+def append_skipped_record(lines: List[str], entry_lines: List[str]) -> List[str]:
+    section_start = find_section(lines, SECTION_SKIPPED_HEADER)
+    if section_start is None:
+        if lines and not lines[-1].endswith("\n"):
+            lines.append("\n")
+        lines.append(SECTION_SKIPPED_HEADER + "\n")
+        lines.append("\n")
+        lines.extend(entry_lines)
+        return lines
+
+    insert_at = find_section_end(lines, section_start)
+    lines[insert_at:insert_at] = entry_lines
+    return lines
+
+
+def skip_task(root: str, target: Optional[str], reason: str) -> str:
+    tasks_path = Path(root) / TASKS_FILE_REL
+    progress_path = Path(root) / PROGRESS_FILE_REL
+    ensure_file(tasks_path, TASKS_SKELETON)
+    ensure_file(progress_path, PROGRESS_SKELETON)
+
+    lines = read_lines(tasks_path)
+    pending = [entry for entry in get_section_task_lines(lines, SECTION_PENDING) if not entry.done]
+    task = resolve_single_target(pending, target, "#skip")
+
+    skipped_line = f"- [-] {task.text} - motivo: {reason or 'sin motivo registrado'} ({today_iso()})\n"
+    entry_lines = [skipped_line] + format_task_metadata_block(task.metadata)
+
+    del lines[task.start_index:task.end_index]
+    lines = append_skipped_record(lines, entry_lines)
+    write_lines(tasks_path, lines)
+
+    pending_after = [entry for entry in get_section_task_lines(lines, SECTION_PENDING) if not entry.done]
+    run_date = today_iso()
+    progress_lines = read_lines(progress_path)
+    progress_lines = update_progress_metadata(progress_lines, len(pending_after), run_date)
+    progress_lines = append_run_history(
+        progress_lines,
+        f"#skip {target or ''}".strip(),
+        [f"{task.text} - motivo: {reason or 'sin motivo registrado'}"],
+        len(pending_after),
+        run_date,
+        label="Tareas salteadas",
+        marker="-",
+    )
+    write_lines(progress_path, progress_lines)
+
+    return task.text
+
+
+def add_note(root: str, target: Optional[str], note: str) -> str:
+    tasks_path = Path(root) / TASKS_FILE_REL
+    ensure_file(tasks_path, TASKS_SKELETON)
+
+    lines = read_lines(tasks_path)
+    pending = [entry for entry in get_section_task_lines(lines, SECTION_PENDING) if not entry.done]
+    task = resolve_single_target(pending, target, "#note")
+
+    lines.insert(task.end_index, f"    - note: {note} ({today_iso()})\n")
+    write_lines(tasks_path, lines)
+    return task.text
 
 
 def create_task(root: str, task_text: str, metadata: Dict[str, str]) -> Tuple[str, Optional[str]]:
@@ -521,7 +644,7 @@ def create_task(root: str, task_text: str, metadata: Dict[str, str]) -> Tuple[st
 def main() -> int:
     parser = argparse.ArgumentParser(description="Gestor prompt-driven de tasks/progress para GRAPH.")
     parser.add_argument("repo_root", nargs="?", default=".", help="Raiz del proyecto con .agents/graph")
-    parser.add_argument("prompt", help="Prompt que empieza con #task o #run")
+    parser.add_argument("prompt", help="Prompt que empieza con #task, #run, #run-all, #done, #skip o #note")
     args = parser.parse_args()
 
     root = Path(args.repo_root).resolve()
@@ -536,11 +659,22 @@ def main() -> int:
             print(f"Tarea agregada: {inserted}")
             if node_path:
                 print(f"Nodo de conocimiento creado: {node_path}")
-        else:
+        elif action == "run":
             completed = complete_tasks(root, target, summary or "completada")
             print("Tareas ejecutadas:")
             for text in completed:
                 print(f"- {text}")
+        elif action == "done":
+            completed = complete_tasks(root, target, summary or "marcada como completada", command="#done")
+            print("Tareas marcadas como completadas:")
+            for text in completed:
+                print(f"- {text}")
+        elif action == "skip":
+            skipped = skip_task(root, target, summary or "")
+            print(f"Tarea salteada: {skipped}")
+        else:
+            noted = add_note(root, target, summary or "")
+            print(f"Nota agregada a: {noted}")
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
