@@ -58,16 +58,33 @@ Cuando un usuario escribe `#task` en su prompt, esa tarea debe agregarse
 como una entrada nueva en `.agents/graph/sessions/tasks.md`. No basta con
 mencionarlo en la conversación: el backlog real se escribe en este archivo.
 
-El prompt `#run` ordena la ejecución de tareas pendientes en `.agents/graph/sessions/tasks.md`, y
-el resultado debe quedar registrado en `.agents/graph/sessions/progress.md`.
+Los prompts `#run` / `#run-all` ordenan la ejecución de tareas pendientes en
+`.agents/graph/sessions/tasks.md`, `#done` y `#skip` cierran o saltean tareas
+puntuales, y `#note` deja notas fechadas en una tarea. Toda operación que
+cambie el estado del backlog debe quedar registrada en
+`.agents/graph/sessions/progress.md`.
 
 
-## Convenciones de uso de `#task` y `#run`
+## Comandos de backlog (`#task`, `#run`, `#run-all`, `#done`, `#skip`, `#note`)
 
-- `#task` agrega una nueva tarea al backlog real en `.agents/graph/sessions/tasks.md`.
-- La metadata de la tarea puede ir en el mismo prompt como pares `key:value`.
-- Cuando la tarea trae metadata, el script la guarda como un bloque indentado debajo de la linea de la tarea.
-- `#run` marca la siguiente tarea pendiente, o la que indiques con `#run 2` / `#run all`, y actualiza `.agents/graph/sessions/progress.md`.
+El backlog vive en `.agents/graph/sessions/tasks.md` y cada ejecución deja
+rastro en `.agents/graph/sessions/progress.md`. El set mínimo de comandos:
+
+- `#task <descripción>` agrega una nueva tarea al backlog real. La metadata
+  puede ir en el mismo prompt como pares `key:value`; el script la guarda
+  como un bloque indentado debajo de la línea de la tarea.
+- `#run` ejecuta (marca completada) la siguiente tarea pendiente, o la que
+  indiques con `#run 2`. Acepta una nota de cierre: `#run 2: listo para integrar`.
+- `#run-all` ejecuta todas las tareas pendientes de una vez (alias de `#run all`).
+- `#done [N]` marca una tarea como completada sin pasar por ejecución
+  (por ejemplo, si ya estaba resuelta en otra rama).
+- `#skip [N]` saltea una tarea: sale de pendientes y queda registrada en
+  `### Tareas salteadas (con motivo)` con el motivo y la fecha.
+- `#note [N]: <texto>` agrega una nota fechada debajo de una tarea
+  pendiente, sin cambiar su estado.
+
+En todos los casos `N` es la posición dentro de las pendientes; si se
+omite, aplica sobre la primera.
 
 Ejemplos:
 
@@ -76,6 +93,10 @@ Ejemplos:
 #task Revisar hook file:hooks/stagnation-hook.sh type:service priority:medium
 #run
 #run 2: listo para integrar
+#run-all: cierre de sprint
+#done 2: ya estaba resuelta en otra rama
+#skip 3: fuera de alcance del sprint
+#note 1: falta definir el endpoint
 ```
 
 ## Por qué esto y no otra cosa

@@ -32,9 +32,14 @@
 ### Tareas completadas (referenciar en `progress.md`)
 - [x] <tarea completada> — detalle breve
 
+### Tareas salteadas (con motivo)
+- [-] <tarea salteada> - motivo: <por qué se salteó> (<fecha>)
+
 ## Convención
 Cada tarea que un agente tome de acá debe, al completarse, dejar rastro en
 `graph/sessions/progress.md` — no alcanza con tildarla acá.
+Comandos de backlog soportados: `#task`, `#run`, `#run-all`, `#done`,
+`#skip`, `#note` — ver `graph/README.md` para la convención completa.
 
 ## Metadata de tarea
 Las tareas pueden llevar un bloque de metadata indentado debajo de la línea de
