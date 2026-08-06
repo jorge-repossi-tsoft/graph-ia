@@ -1,0 +1,46 @@
+# registry.yml
+# Define qué rol tiene acceso a qué parte de graph/, y con qué permisos.
+# En multi-agente, el grafo es UN solo recurso compartido — esto es lo que
+# evita que dos agentes lo interpreten de formas distintas o pisen cambios.
+
+roles:
+  planner:
+    description: "Explora el grafo, propone planes. No ejecuta ni aprueba."
+    file: roles/planner.md
+    permissions:
+      graph/knowledge: read
+      graph/history: read
+      graph/gates/pending: write     # solo puede CREAR propuestas
+      graph/gates/approved: none
+      graph/sessions: read_write
+
+  executor:
+    description: "Ejecuta acciones ya aprobadas en gates/approved/. No propone ni aprueba."
+    file: roles/executor.md
+    permissions:
+      graph/knowledge: read_write     # actualiza nodos al ejecutar
+      graph/history: write            # registra qué hizo y por qué
+      graph/gates/pending: none
+      graph/gates/approved: read      # solo puede leer lo que ya fue aprobado
+      graph/sessions: read_write
+
+  reviewer:
+    description: >
+      Rol opcional de crítica automatizada — revisa propuestas ANTES de que
+      lleguen al humano, para reducir ruido en el gate real. No reemplaza
+      la aprobación humana, la precede.
+    file: roles/reviewer.md
+    permissions:
+      graph/knowledge: read
+      graph/history: read
+      graph/gates/pending: read_write   # puede anotar/rechazar antes del humano
+      graph/gates/approved: none
+      graph/sessions: read
+
+# Regla general: ningún rol tiene write en graph/gates/approved/ —
+# esa carpeta solo la escribe el mecanismo de aprobación humana en sí,
+# nunca un agente, sin importar el rol.
+invariants:
+  - "Ningún rol automatizado escribe en gates/approved/"
+  - "circuit-breaker.yml y policy.yml solo se editan vía gate de severidad high"
+  - "Todo rol que escribe en knowledge/ debe también escribir en history/ el mismo cambio"

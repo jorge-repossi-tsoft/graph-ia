@@ -1,0 +1,55 @@
+# circuit-breaker.yml
+# Control de loops autónomos — enforcement vive ACÁ, no en el prompt del agente.
+# El agente no puede editar este archivo sin pasar por un gate de severidad "high".
+
+enforcement:
+  # El corte lo aplica la capa de orquestación (runner/harness), nunca el propio
+  # agente. Si el agente pudiera desactivar esto desde su propio contexto,
+  # el circuit breaker no cumple su función.
+  external: true
+  editable_by_agent: false
+  requires_gate_to_modify: high
+
+iteration_cap:
+  # Límite duro de ciclos plan→act→observe antes de forzar detención y reporte.
+  max_iterations: 25
+  on_reach:
+    action: stop_and_report
+    write_to: ../sessions/progress.md
+
+stagnation_detection:
+  enabled: true
+  # Ciclos consecutivos sin progreso medible antes de disparar el corte.
+  no_progress_threshold: 3
+  # Qué cuenta como "progreso" — ajustar según el tipo de proyecto.
+  progress_signals:
+    - files_changed
+    - tests_passing_delta
+    - new_errors_vs_repeated_errors
+  on_trigger:
+    action: trip_breaker
+    alert: true
+    log_full_state: true
+
+budget:
+  # Opcional — dejar en null si no se quiere trackear costo/tokens todavía.
+  max_tokens: null
+  max_cost_usd: null
+  on_exceed: stop_and_report
+
+audit:
+  # Todo corte queda registrado — esto alimenta directamente el principio H
+  # (el historial vive con la estructura, no aparte).
+  log_path: ../history/circuit-breaker-events.jsonl
+  fields:
+    - timestamp
+    - trigger_reason        # iteration_cap | stagnation | budget
+    - iterations_elapsed
+    - last_known_state
+    - node_or_community_affected
+
+restart_policy:
+  # Un breaker disparado NO se reinicia solo. Requiere revisión humana
+  # antes de retomar — esto es lo que conecta Circuit Breaker con R (Reviewable).
+  auto_restart: false
+  requires_human_review: true

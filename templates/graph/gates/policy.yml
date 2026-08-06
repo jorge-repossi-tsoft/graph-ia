@@ -1,0 +1,55 @@
+# policy.yml
+# Define qué acciones requieren gate humano y con qué nivel de fricción.
+# Default: conservador. Se puede relajar por severidad a medida que el
+# proyecto/equipo gana confianza — nunca al revés silenciosamente.
+
+severity_levels:
+  low:
+    description: "Reversible sin costo real (ej. leer, indexar, proponer un plan)"
+    requires_gate: false
+    logged: true
+
+  medium:
+    description: "Cambios locales reversibles (ej. editar código no productivo, crear rama)"
+    requires_gate: true
+    approval_mode: async       # el humano puede aprobar cuando pueda, no bloquea el hilo principal
+    escalation_context_required: true   # ver nota abajo
+
+  high:
+    description: "Cambios que tocan producción, borran datos, o modifican config del propio patrón (circuit-breaker.yml, policy.yml)"
+    requires_gate: true
+    approval_mode: sync        # bloquea hasta aprobación explícita
+    escalation_context_required: true
+    requires_named_approver: true
+
+  critical:
+    description: "Acciones irreversibles con impacto externo (deploy, envío de datos a terceros, borrado masivo)"
+    requires_gate: true
+    approval_mode: sync
+    escalation_context_required: true
+    requires_named_approver: true
+    requires_second_approval: true   # dos personas, no una
+
+# Nota sobre escalation_context_required:
+# Cuando un agente escala a un gate, la propuesta en gates/pending/ debe incluir:
+#   - qué intentó
+#   - por qué está inseguro o por qué esto requiere revisión
+#   - qué opciones consideró
+# Una propuesta sin este contexto es un gate cosmético — el anti-patrón que
+# este mismo policy.yml existe para evitar.
+
+default_severity_by_action:
+  read: low
+  index: low
+  propose_plan: low
+  edit_non_prod_file: medium
+  create_branch: medium
+  merge_to_main: high
+  edit_graph_config: high
+  deploy: critical
+  delete_data: critical
+  external_api_call_with_side_effects: critical
+
+# Acciones no listadas arriba: tratar como "high" por defecto hasta que
+# alguien las clasifique explícitamente. Nunca asumir "low" por omisión.
+unclassified_action_default: high
