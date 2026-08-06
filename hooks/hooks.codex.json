@@ -1,0 +1,37 @@
+{
+  "description": "Adaptador de enforcement del circuit breaker de GRAPH para Codex CLI. Mismo contrato que hooks/hooks.json (la versión para Claude Code) — ver hooks/claude-code-hook.sh para la lógica real, es el mismo script en ambos casos. Solo cambian los nombres de herramienta que Codex expone: no hay Edit/MultiEdit/Write/NotebookEdit separados, las ediciones de archivo pasan todas por apply_patch.",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/session-reset-hook.sh"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/claude-code-hook.sh"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "apply_patch|Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/stagnation-hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
