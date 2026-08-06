@@ -24,6 +24,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(pwd)"
 MODE=""
 MIGRATE=false
+UPDATE=false
 ALLOW_SELF_INSTALL="${TEMPLATE_IA_ALLOW_SELF_INSTALL:-0}"
 
 SCRIPT_DIR_REAL="$(cd "$SCRIPT_DIR" && pwd -P)"
@@ -40,13 +41,38 @@ for arg in "$@"; do
     --mode=greenfield) MODE="greenfield" ;;
     --mode=brownfield) MODE="brownfield" ;;
     --migrate) MIGRATE=true ;;
+    --update) UPDATE=true ;;
     *)
       echo "Argumento desconocido: $arg" >&2
-      echo "Uso: install.sh --mode=greenfield|brownfield [--migrate]" >&2
+      echo "Uso: install.sh --mode=greenfield|brownfield [--migrate] | install.sh --update" >&2
       exit 1
       ;;
   esac
 done
+
+# --update corre solo, sobre un proyecto que ya tiene GRAPH instalado: no
+# toca la instalación, solo resincroniza la documentación genérica del
+# patrón y el bloque administrado de AGENTS.md/CLAUDE.md con la versión
+# actual de este plugin (delegado a template-ia.py, que es la única fuente
+# de verdad de esa lógica — así no hay dos implementaciones divergiendo).
+if [ "$UPDATE" = true ]; then
+  if [ -n "$MODE" ]; then
+    echo "--update no se combina con --mode. Corré uno u otro." >&2
+    exit 1
+  fi
+  if ! [ -d "$REPO_ROOT/.agents/graph" ]; then
+    echo "No hay .agents/graph/ en este repo â€” corré install.sh --mode=... primero." >&2
+    exit 1
+  fi
+  if ! command -v python3 >/dev/null 2>&1; then
+    echo "No hay python3 disponible â€” --update depende de scripts/template-ia.py para" >&2
+    echo "resincronizar AGENTS.md/CLAUDE.md y la documentación del patrón sin duplicar" >&2
+    echo "ni pisar contenido propio. Instalá Python 3 y volvé a correr install.sh --update." >&2
+    exit 1
+  fi
+  python3 "$SCRIPT_DIR/scripts/template-ia.py" "$REPO_ROOT" --update-docs
+  exit $?
+fi
 
 if [ -z "$MODE" ]; then
   echo "Falta --mode=greenfield o --mode=brownfield. No lo adivino, elegilo vos." >&2
@@ -157,44 +183,64 @@ fi
 
 # --- Paso 4: bridge AGENTS.md / CLAUDE.md en la raÃ­z del repo ---
 echo "-- Paso 4: bridge AGENTS.md / CLAUDE.md --"
-place_bridge() {
-  local filename="$1"
-  local root_path="./$filename"
-  local nested_path=".agents/$filename"
-  local target=""
+# La lÃ³gica real (bloque administrado con marcador de inicio y cierre,
+# reemplazo idempotente, prefijo .agents/ segÃºn dÃ³nde viva el archivo) vive
+# en una sola fuente de verdad: scripts/template-ia.py. Delegamos ahÃ­ en vez
+# de reimplementar el mismo bloque en bash, para que no puedan desincronizarse
+# dos versiones del texto del bridge.
+if command -v python3 >/dev/null 2>&1; then
+  python3 "$SCRIPT_DIR/scripts/template-ia.py" "$REPO_ROOT" --update-docs
+else
+  echo "  [WARN] no hay python3 â€” usando un bridge mÃ­nimo degradado (sin los"
+  echo "         comandos #task/#run/#done/#skip/#note documentados)."
+  echo "         InstalÃ¡ Python 3 y corrÃ©: python3 scripts/template-ia.py . --update-docs"
+  echo "         para completarlo con el bridge real del plugin."
+  place_bridge() {
+    local filename="$1"
+    local root_path="./$filename"
+    local nested_path=".agents/$filename"
+    local target=""
 
-  if [ -f "$root_path" ]; then
-    target="$root_path"
-  elif [ -f "$nested_path" ]; then
-    target="$nested_path"
-  fi
-
-  if [ -n "$target" ]; then
-    if grep -q "template-ia:bridge-block" "$target" 2>/dev/null; then
-      echo "  [skip] $target ya tiene el bridge block"
-    else
-      {
-        echo ""
-        echo "<!-- template-ia:bridge-block -->"
-        echo "## GRAPH"
-        echo "Este proyecto usa el patrÃ³n GRAPH. Antes de actuar de forma autÃ³noma,"
-        echo "consultÃ¡:"
-        echo "- \`.agents/graph/GRAPH.md\` (spec completa)"
-        echo "- \`.agents/roles/registry.yml\` (quÃ© rol puede hacer quÃ©)"
-        echo "- \`.agents/graph/gates/policy.yml\` (quÃ© necesita aprobaciÃ³n humana)"
-        echo "- \`.agents/graph/sessions/progress.md\` y \`tasks.md\` (estado actual)"
-        if [ -f ".agents/graph/legacy-system.md" ]; then
-          echo "- \`.agents/graph/legacy-system.md\` (doc previa migrada, referencia)"
-        fi
-      } >> "$target"
-      echo "  [ok]   bridge agregado a $target (contenido existente intacto)"
+    if [ -f "$root_path" ]; then
+      target="$root_path"
+    elif [ -f "$nested_path" ]; then
+      target="$nested_path"
     fi
-  else
-    safe_copy "$SCRIPT_DIR/templates/$filename" "./$filename"
-  fi
-}
-place_bridge "AGENTS.md"
-place_bridge "CLAUDE.md"
+
+    if [ -n "$target" ]; then
+      if grep -q "template-ia:bridge-block" "$target" 2>/dev/null; then
+        echo "  [skip] $target ya tiene el bridge block"
+      else
+        {
+          echo ""
+          echo "<!-- template-ia:bridge-block -->"
+          echo "## GRAPH"
+          echo "Este proyecto usa el patrÃ³n GRAPH. Antes de actuar de forma autÃ³noma,"
+          echo "consultÃ¡:"
+          echo "- \`.agents/graph/GRAPH.md\` (spec completa)"
+          echo "- \`.agents/roles/registry.yml\` (quÃ© rol puede hacer quÃ©)"
+          echo "- \`.agents/graph/gates/policy.yml\` (quÃ© necesita aprobaciÃ³n humana)"
+          echo "- \`.agents/graph/sessions/progress.md\` y \`tasks.md\` (estado actual)"
+          if [ -f ".agents/graph/legacy-system.md" ]; then
+            echo "- \`.agents/graph/legacy-system.md\` (doc previa migrada, referencia)"
+          fi
+          echo "<!-- /template-ia:bridge-block -->"
+        } >> "$target"
+        echo "  [ok]   bridge agregado a $target (contenido existente intacto)"
+      fi
+    else
+      safe_copy "$SCRIPT_DIR/templates/$filename" "./$filename"
+      # El fallback sin python3 no resuelve el placeholder de la línea de
+      # legacy-system.md (eso requiere el script) â€” lo sacamos siempre para
+      # no dejar el comentario crudo en el archivo.
+      if [ -f "./$filename" ]; then
+        grep -v "template-ia:legacy-line" "./$filename" > "./$filename.tmp" && mv "./$filename.tmp" "./$filename"
+      fi
+    fi
+  }
+  place_bridge "AGENTS.md"
+  place_bridge "CLAUDE.md"
+fi
 
 echo ""
 echo "== Listo =="
