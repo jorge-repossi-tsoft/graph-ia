@@ -130,6 +130,59 @@ class GraphPromptTests(unittest.TestCase):
         finally:
             shutil.rmtree(repo_tmp, ignore_errors=True)
 
+    def test_create_task_assigns_stable_sequential_id(self):
+        repo_tmp = Path(__file__).resolve().parent / f'_tmp_graph_prompt_{uuid.uuid4().hex}'
+        repo_tmp.mkdir(parents=True, exist_ok=False)
+        try:
+            graph_prompt.create_task(str(repo_tmp), 'Tarea A', {})
+            graph_prompt.create_task(str(repo_tmp), 'Tarea B', {})
+
+            tasks_path = repo_tmp / '.agents' / 'graph' / 'sessions' / 'tasks.md'
+            pending = [
+                entry
+                for entry in graph_prompt.get_section_task_lines(
+                    graph_prompt.read_lines(tasks_path), graph_prompt.SECTION_PENDING
+                )
+                if not entry.done
+            ]
+            today = graph_prompt.date.today().strftime('%Y%m%d')
+            self.assertEqual(pending[0].metadata['id'], f'T-{today}-001')
+            self.assertEqual(pending[1].metadata['id'], f'T-{today}-002')
+        finally:
+            shutil.rmtree(repo_tmp, ignore_errors=True)
+
+    def test_run_done_skip_note_resolve_by_stable_id_regardless_of_position(self):
+        repo_tmp = Path(__file__).resolve().parent / f'_tmp_graph_prompt_{uuid.uuid4().hex}'
+        repo_tmp.mkdir(parents=True, exist_ok=False)
+        tasks_path = repo_tmp / '.agents' / 'graph' / 'sessions' / 'tasks.md'
+        try:
+            graph_prompt.create_task(str(repo_tmp), 'Tarea A', {})
+            graph_prompt.create_task(str(repo_tmp), 'Tarea B', {})
+            graph_prompt.create_task(str(repo_tmp), 'Tarea C', {})
+            today = graph_prompt.date.today().strftime('%Y%m%d')
+            id_b = f'T-{today}-002'
+            id_c = f'T-{today}-003'
+            id_a = f'T-{today}-001'
+
+            # Salteo la del medio por ID -- las de A y C no deberian correrse.
+            skipped = graph_prompt.skip_task(str(repo_tmp), id_b, 'fuera de alcance')
+            self.assertEqual(skipped, 'Tarea B')
+
+            # C sigue siendo referenciable por su ID aunque ahora este en la
+            # posicion 2 de pendientes (A quedo en la 1).
+            completed = graph_prompt.complete_tasks(str(repo_tmp), id_c, 'lista', command='#done')
+            self.assertEqual(completed, ['Tarea C'])
+
+            noted = graph_prompt.add_note(str(repo_tmp), id_a, 'nota por ID')
+            self.assertEqual(noted, 'Tarea A')
+            tasks_text = tasks_path.read_text(encoding='utf-8')
+            self.assertIn('- note: nota por ID', tasks_text)
+
+            with self.assertRaises(ValueError):
+                graph_prompt.skip_task(str(repo_tmp), f'T-{today}-999', 'no existe')
+        finally:
+            shutil.rmtree(repo_tmp, ignore_errors=True)
+
 
 if __name__ == '__main__':
     unittest.main()

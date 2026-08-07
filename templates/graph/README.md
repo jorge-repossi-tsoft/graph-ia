@@ -99,15 +99,23 @@ chica para cuando quieras ajustar algo puntual.
 
 ## Convenciones de uso de los comandos de backlog
 
-- `#task` agrega una nueva tarea al backlog real en `.agents/graph/sessions/tasks.md`.
-- La metadata de la tarea puede ir en el mismo prompt como pares `key:value`.
+- `#task` agrega una nueva tarea al backlog real en `.agents/graph/sessions/tasks.md`
+  y le asigna un **ID estable** `T-YYYYMMDD-NNN` (contador por día), guardado
+  como metadata (`- id: T-20260807-001`) — nunca lo pongas vos a mano, lo
+  genera el gestor de backlog para garantizar que no se repita.
+- La metadata adicional de la tarea puede ir en el mismo prompt como pares `key:value`.
 - Cuando la tarea trae metadata, el script la guarda como un bloque indentado debajo de la linea de la tarea.
-- `#run` marca la siguiente tarea pendiente, o la que indiques con `#run 2` / `#run all`, y actualiza `.agents/graph/sessions/progress.md`.
+- `#run` marca la siguiente tarea pendiente, o la que indiques con `#run 2` / `#run T-20260807-002` / `#run all`, y actualiza `.agents/graph/sessions/progress.md`.
 - `#run-all` es el alias directo de `#run all`: cierra todas las pendientes.
-- `#done [N]` marca una tarea como completada sin ejecutarla (útil si ya se resolvió por otro camino); registra el cierre en `progress.md`.
-- `#skip [N]: <motivo>` saca la tarea de pendientes y la mueve a `### Tareas salteadas (con motivo)` con motivo y fecha.
-- `#note [N]: <texto>` agrega una nota fechada debajo de la tarea, sin cambiar su estado.
-- En todos los casos `N` es la posición dentro de las pendientes; si se omite, aplica sobre la primera.
+- `#done [N|ID]` marca una tarea como completada sin ejecutarla (útil si ya se resolvió por otro camino); registra el cierre en `progress.md`.
+- `#skip [N|ID]: <motivo>` saca la tarea de pendientes y la mueve a `### Tareas salteadas (con motivo)` con motivo y fecha.
+- `#note [N|ID]: <texto>` agrega una nota fechada debajo de la tarea, sin cambiar su estado.
+- En `#run`/`#done`/`#skip`/`#note`, la referencia puede ser `N` (la posición
+  dentro de las pendientes en este momento; si se omite, aplica sobre la
+  primera) **o** el ID estable (`T-YYYYMMDD-NNN`) que te devolvió `#task`.
+  Usá el ID cuando vayas a referenciar la misma tarea más adelante en la
+  sesión o en otra sesión — la posición se corre si de por medio se
+  completó, salteó o agregó otra tarea antes; el ID no cambia nunca.
 
 Ejemplos:
 
@@ -116,8 +124,12 @@ Ejemplos:
 #task Revisar hook file:hooks/stagnation-hook.sh type:service priority:medium
 #run
 #run 2: listo para integrar
+#run T-20260807-002: listo para integrar
 #run-all: cierre de sprint
 #done 2: ya estaba resuelta en otra rama
+#done T-20260807-002: ya estaba resuelta en otra rama
 #skip 3: fuera de alcance del sprint
+#skip T-20260807-003: fuera de alcance del sprint
 #note 1: falta definir el endpoint
+#note T-20260807-001: falta definir el endpoint
 ```
