@@ -17,6 +17,9 @@
 - [ ] policy.yml revisado — ¿las severidades por defecto tienen sentido para este proyecto?
 - [ ] roles/registry.yml — ¿qué roles se activan en este proyecto? (no todos son obligatorios)
 
+
+
+
 ## Backlog del proyecto
 ### Tareas pendientes
 - [ ] <tarea 1>
