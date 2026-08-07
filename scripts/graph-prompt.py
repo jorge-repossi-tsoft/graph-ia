@@ -6,18 +6,29 @@ Uso:
   python3 scripts/graph-prompt.py [repo_root] "#task <descripcion>"
   python3 scripts/graph-prompt.py [repo_root] "#run"
   python3 scripts/graph-prompt.py [repo_root] "#run 2: resultado breve"
+  python3 scripts/graph-prompt.py [repo_root] "#run T-20260807-002: resultado breve"
   python3 scripts/graph-prompt.py [repo_root] "#run-all: cierre de sprint"
   python3 scripts/graph-prompt.py [repo_root] "#done 2: ya estaba resuelta"
   python3 scripts/graph-prompt.py [repo_root] "#skip 3: fuera de alcance"
   python3 scripts/graph-prompt.py [repo_root] "#note 1: falta definir el endpoint"
 
 Comandos soportados sobre el backlog del proyecto:
-  #task     agrega una tarea nueva a `Tareas pendientes`.
-  #run      ejecuta (marca completada) la siguiente pendiente, o `#run N`.
+  #task     agrega una tarea nueva a `Tareas pendientes` con un ID estable
+            (`T-YYYYMMDD-NNN`, contador por dia) guardado como metadata.
+  #run      ejecuta (marca completada) la siguiente pendiente, `#run N`
+            (posicion entre pendientes) o `#run T-YYYYMMDD-NNN` (ID estable).
   #run-all  ejecuta todas las pendientes (alias de `#run all`).
-  #done     marca una tarea como completada sin pasar por ejecucion.
-  #skip     saltea una tarea: sale de pendientes y queda registrada aparte.
-  #note     agrega una nota fechada debajo de una tarea pendiente.
+  #done     marca una tarea como completada sin pasar por ejecucion. Acepta
+            posicion o ID, igual que `#run`.
+  #skip     saltea una tarea (posicion o ID): sale de pendientes y queda
+            registrada aparte.
+  #note     agrega una nota fechada debajo de una tarea pendiente (posicion
+            o ID).
+
+El ID es la referencia estable: no cambia si se completan, saltean o
+agregan tareas antes. La posicion (`N`) es solo un atajo de conveniencia
+sobre el estado actual de `Tareas pendientes` y puede correrse de tarea al
+modificarse el backlog.
 
 Este script materializa esas ordenes en archivos persistentes:
 `.agents/graph/sessions/tasks.md` y `.agents/graph/sessions/progress.md`.
@@ -101,12 +112,16 @@ SECTION_COMPLETED_HEADER = "### Tareas completadas (referenciar en `progress.md`
 SECTION_SKIPPED_HEADER = "### Tareas salteadas (con motivo)"
 SECTION_HISTORY_HEADER = "## Historial de ejecuciones"
 
+TASK_ID_RE = r"T-\d{8}-\d+"
+TASK_ID_PATTERN = re.compile(TASK_ID_RE, re.IGNORECASE)
+_TARGET_RE = rf"\d+|all|{TASK_ID_RE}"
+
 TASK_PATTERN = re.compile(r"^\s*#task\s+(.+)$", re.IGNORECASE | re.DOTALL)
 RUN_ALL_PATTERN = re.compile(r"^\s*#run-all(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
-RUN_PATTERN = re.compile(r"^\s*#run(?:\s+(\d+|all))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
-DONE_PATTERN = re.compile(r"^\s*#done(?:\s+(\d+|all))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
-SKIP_PATTERN = re.compile(r"^\s*#skip(?:\s+(\d+))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
-NOTE_PATTERN = re.compile(r"^\s*#note(?:\s+(\d+)(?=\s|[:\-]))?\s*[:\-]?\s*(.+)$", re.IGNORECASE | re.DOTALL)
+RUN_PATTERN = re.compile(rf"^\s*#run(?:\s+({_TARGET_RE}))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
+DONE_PATTERN = re.compile(rf"^\s*#done(?:\s+({_TARGET_RE}))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
+SKIP_PATTERN = re.compile(rf"^\s*#skip(?:\s+(\d+|{TASK_ID_RE}))?(?:\s*[:\-]\s*(.+))?\s*$", re.IGNORECASE)
+NOTE_PATTERN = re.compile(rf"^\s*#note(?:\s+(\d+|{TASK_ID_RE})(?=\s|[:\-]))?\s*[:\-]?\s*(.+)$", re.IGNORECASE | re.DOTALL)
 METADATA_PATTERN = re.compile(r"(?P<key>[a-zA-Z_][\w\-]*):(?P<value>\"[^\"]+\"|[^\s]+)")
 METADATA_LINE_PATTERN = re.compile(r"^\s{4,}-\s+(?P<key>[a-zA-Z_][\w\-]*):\s*(?P<value>\"[^\"]+\"|.+)$")
 
@@ -201,6 +216,28 @@ def task_id() -> str:
 
 def today_iso() -> str:
     return date.today().isoformat()
+
+
+def next_stable_task_id(lines: List[str]) -> str:
+    """ID estable con formato T-YYYYMMDD-NNN, contador por dia. Escanea todo
+    el archivo (pendientes, en curso, completadas, salteadas) para no repetir
+    numero aunque la tarea con ese ID ya se haya movido de seccion."""
+    day = date.today().strftime("%Y%m%d")
+    max_n = 0
+    for line in lines:
+        for match in TASK_ID_PATTERN.finditer(line):
+            found = match.group(0).upper()
+            if found.startswith(f"T-{day}-"):
+                max_n = max(max_n, int(found.rsplit("-", 1)[1]))
+    return f"T-{day}-{max_n + 1:03d}"
+
+
+def find_task_by_id(entries: List["TaskEntry"], task_id_value: str) -> Optional["TaskEntry"]:
+    normalized = task_id_value.upper()
+    for entry in entries:
+        if entry.metadata.get("id", "").upper() == normalized:
+            return entry
+    return None
 
 
 def sanitize_filename(node_id: str) -> str:
@@ -370,6 +407,11 @@ def resolve_run_target(pending_tasks: List[TaskEntry], target: Optional[str]) ->
         if ordinal < 1 or ordinal > len(pending_tasks):
             raise ValueError(f"Numero de tarea invalido: {ordinal}. Hay {len(pending_tasks)} tareas pendientes.")
         return [pending_tasks[ordinal - 1]]
+    if TASK_ID_PATTERN.fullmatch(target):
+        match = find_task_by_id(pending_tasks, target)
+        if match is None:
+            raise ValueError(f"No hay ninguna tarea pendiente con ID {target.upper()}.")
+        return [match]
     raise ValueError(f"Formato de #run invalido: {target}")
 
 
@@ -560,6 +602,11 @@ def resolve_single_target(pending_tasks: List[TaskEntry], target: Optional[str],
         raise ValueError(f"No hay tareas pendientes para {command}.")
     if target is None:
         return pending_tasks[0]
+    if TASK_ID_PATTERN.fullmatch(target):
+        match = find_task_by_id(pending_tasks, target)
+        if match is None:
+            raise ValueError(f"No hay ninguna tarea pendiente con ID {target.upper()}.")
+        return match
     ordinal = int(target)
     if ordinal < 1 or ordinal > len(pending_tasks):
         raise ValueError(f"Numero de tarea invalido: {ordinal}. Hay {len(pending_tasks)} tareas pendientes.")
@@ -634,10 +681,16 @@ def create_task(root: str, task_text: str, metadata: Dict[str, str]) -> Tuple[st
     ensure_file(tasks_path, TASKS_SKELETON)
 
     lines = read_lines(tasks_path)
-    lines, inserted_line = append_pending_task(lines, task_text, metadata)
+    # El ID es la referencia estable de la tarea (no cambia si se completan,
+    # saltean o agregan otras antes) - se genera siempre en el servidor, no
+    # se toma de metadata del usuario, para garantizar unicidad.
+    stable_id = next_stable_task_id(lines)
+    metadata_with_id = {"id": stable_id, **{k: v for k, v in metadata.items() if k != "id"}}
+
+    lines, inserted_line = append_pending_task(lines, task_text, metadata_with_id)
     write_lines(tasks_path, lines)
 
-    node_path = create_knowledge_node(root, task_text, metadata)
+    node_path = create_knowledge_node(root, task_text, metadata_with_id)
     return inserted_line, node_path
 
 
@@ -657,6 +710,11 @@ def main() -> int:
         if action == "task":
             inserted, node_path = create_task(root, target, metadata)
             print(f"Tarea agregada: {inserted}")
+            tasks_path = root / TASKS_FILE_REL
+            pending = get_section_task_lines(read_lines(tasks_path), SECTION_PENDING)
+            created_entry = next((e for e in reversed(pending) if e.text == target.strip() and e.metadata.get("id")), None)
+            if created_entry:
+                print(f"ID estable: {created_entry.metadata['id']} (referencialo con #run/#done/#skip/#note)")
             if node_path:
                 print(f"Nodo de conocimiento creado: {node_path}")
         elif action == "run":
