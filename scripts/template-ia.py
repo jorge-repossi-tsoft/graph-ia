@@ -458,15 +458,20 @@ def main():
         "docs_updated": [], "docs_backed_up": [],
     }
 
-    # --reindex y --update-docs pueden correr solos, sin --mode, sobre un
-    # proyecto que ya tiene GRAPH instalado.
-    if args.reindex and not args.mode:
-        reindex_only(root, report)
-        print_summary("reindex-only", False, root, report)
-        return
-    if args.update_docs and not args.mode:
-        update_docs(root, report)
-        print_summary("update-docs-only", False, root, report)
+    # --reindex y --update-docs pueden correr solos (o combinados), sin
+    # --mode, sobre un proyecto que ya tiene GRAPH instalado.
+    if not args.mode and (args.reindex or args.update_docs):
+        if args.reindex:
+            reindex_only(root, report)
+        if args.update_docs:
+            update_docs(root, report)
+        if args.reindex and args.update_docs:
+            summary_mode = "reindex+update-docs"
+        elif args.reindex:
+            summary_mode = "reindex-only"
+        else:
+            summary_mode = "update-docs-only"
+        print_summary(summary_mode, False, root, report)
         return
 
     if not args.mode:
