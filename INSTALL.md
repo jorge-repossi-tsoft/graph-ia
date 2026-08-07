@@ -122,7 +122,7 @@ confirmar la sintaxis de tu versión puntual.
 
 ### 5. Atajo opcional de terminal: `graph`
 
-Si quer�s evitar escribir la ruta completa del script cada vez, el repo del
+Si querés evitar escribir la ruta completa del script cada vez, el repo del
 plugin incluye un wrapper en `bin/`:
 
 - `bin/graph.ps1`
@@ -133,7 +133,7 @@ Ese wrapper busca `template-ia.py` en este orden:
 1. `TEMPLATE_IA_SCRIPT`
 2. `TEMPLATE_IA_ROOT\scripts\template-ia.py`
 3. el checkout local del repo del plugin
-4. la instalaci�n activa de Codex via `codex plugin list`
+4. la instalación activa de Codex vía `codex plugin list`
 
 Uso:
 
