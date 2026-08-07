@@ -35,6 +35,9 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(SCRIPT_DIR, "..", "templates")
 BRIDGE_MARKER = "<!-- template-ia:bridge-block -->"
+BRIDGE_END_MARKER = "<!-- /template-ia:bridge-block -->"
+LEGACY_LINE_PLACEHOLDER = "<!-- template-ia:legacy-line -->"
+LEGACY_LINE_TEXT = "- `.agents/graph/legacy-system.md` — sistema anterior migrado, consultalo también."
 
 COPY_MAP = [
     ("graph/GRAPH.md", ".agents/graph/GRAPH.md"),
@@ -67,16 +70,6 @@ MIGRATE_MAP = [
     ("tasks.md", "graph/sessions/tasks.md"),
     ("system.md", "graph/legacy-system.md"),
 ]
-
-BRIDGE_BLOCK_TMPL = """{marker}
-## GRAPH — puente de este proyecto
-Este proyecto sigue el patrón GRAPH. Antes de actuar, leé:
-- `{prefix}graph/GRAPH.md` — spec completa
-- `{prefix}roles/registry.yml` — roles y permisos
-- `{prefix}graph/gates/policy.yml` — qué requiere aprobación humana
-- `{prefix}graph/sessions/progress.md` / `tasks.md` — qué pasó y qué falta
-{legacy_line}"""
-
 
 def log(msg=""):
     print(msg)
@@ -199,27 +192,93 @@ def copy_base_files(root, report):
             safe_copy(src, dst, report)
 
 
-def place_bridge(root, filename, report, legacy_exists):
+def _canonical_block(filename, legacy_exists):
+    """Lee el bloque administrado (entre marcadores, marcadores incluidos)
+    directamente de templates/<filename> — esa es la única fuente de verdad,
+    para que no se pueda desincronizar de lo que ve un install fresco."""
+    src = os.path.join(TEMPLATES_DIR, filename)
+    if not os.path.isfile(src):
+        return None
+    with open(src, "r", encoding="utf-8") as fh:
+        content = fh.read()
+    start = content.find(BRIDGE_MARKER)
+    end = content.find(BRIDGE_END_MARKER)
+    if start == -1 or end == -1 or end < start:
+        return None
+    block = content[start:end + len(BRIDGE_END_MARKER)]
+    if legacy_exists:
+        block = block.replace(LEGACY_LINE_PLACEHOLDER, LEGACY_LINE_TEXT)
+    else:
+        # sacamos el placeholder y la línea en blanco que deja atrás
+        block = "\n".join(
+            line for line in block.split("\n") if line.strip() != LEGACY_LINE_PLACEHOLDER
+        )
+    return block
+
+
+def _adapt_prefix(block, nested):
+    """El bloque canónico asume que el archivo vive en la raíz del repo
+    (paths con prefijo `.agents/`). Si en cambio ya vive adentro de
+    `.agents/` (caso `nested`), esos paths son relativos y no llevan
+    ese prefijo."""
+    return block.replace(".agents/", "") if nested else block
+
+
+def place_bridge(root, filename, report, legacy_exists, update=False):
     root_path = os.path.join(root, filename)
     agents_path = os.path.join(root, ".agents", filename)
 
-    existing, prefix = None, ""
+    existing, nested = None, False
     if os.path.isfile(root_path):
-        existing, prefix = root_path, ".agents/"
+        existing, nested = root_path, False
     elif os.path.isfile(agents_path):
-        existing, prefix = agents_path, ""
+        existing, nested = agents_path, True
 
-    legacy_line = "- `.agents/graph/legacy-system.md` — sistema anterior migrado\n" if legacy_exists else ""
+    canonical = _canonical_block(filename, legacy_exists)
 
     if existing:
         with open(existing, "r", encoding="utf-8") as fh:
             content = fh.read()
-        if BRIDGE_MARKER in content:
-            report["bridges_skipped"].append(existing)
+        desired_block = _adapt_prefix(canonical, nested) if canonical else None
+        start = content.find(BRIDGE_MARKER)
+        end = content.find(BRIDGE_END_MARKER)
+
+        if start != -1 and end != -1 and end > start:
+            old_block = content[start:end + len(BRIDGE_END_MARKER)]
+            if desired_block is None or old_block == desired_block:
+                report["bridges_skipped"].append(existing)
+                return
+            if not update:
+                report["bridges_stale"].append(existing)
+                return
+            new_content = content[:start] + desired_block + content[end + len(BRIDGE_END_MARKER):]
+            with open(existing, "w", encoding="utf-8") as fh:
+                fh.write(new_content)
+            report["bridges_updated"].append(existing)
             return
-        block = BRIDGE_BLOCK_TMPL.format(marker=BRIDGE_MARKER, prefix=prefix, legacy_line=legacy_line)
-        with open(existing, "a", encoding="utf-8") as fh:
-            fh.write("\n" + block)
+
+        if start != -1:
+            # formato viejo: tiene marcador de inicio pero no de cierre —
+            # asumimos que el bloque viejo ocupaba desde ahí hasta el final
+            # del archivo (así lo escribían las versiones anteriores).
+            if desired_block is None:
+                report["bridges_skipped"].append(existing)
+                return
+            if not update:
+                report["bridges_stale"].append(existing)
+                return
+            new_content = content[:start] + desired_block + "\n"
+            with open(existing, "w", encoding="utf-8") as fh:
+                fh.write(new_content)
+            report["bridges_updated"].append(existing)
+            return
+
+        # no hay marcador todavía — primera vez que se agrega el bridge
+        if desired_block is None:
+            return
+        new_content = content.rstrip("\n") + "\n\n" + desired_block + "\n"
+        with open(existing, "w", encoding="utf-8") as fh:
+            fh.write(new_content)
         report["bridges_appended"].append(existing)
         return
 
@@ -227,9 +286,14 @@ def place_bridge(root, filename, report, legacy_exists):
     if os.path.isfile(src):
         with open(src, "r", encoding="utf-8") as fh:
             content = fh.read()
-        block = BRIDGE_BLOCK_TMPL.format(marker=BRIDGE_MARKER, prefix="", legacy_line=legacy_line)
+        if legacy_exists:
+            content = content.replace(LEGACY_LINE_PLACEHOLDER, LEGACY_LINE_TEXT)
+        else:
+            content = "\n".join(
+                line for line in content.split("\n") if line.strip() != LEGACY_LINE_PLACEHOLDER
+            )
         with open(root_path, "w", encoding="utf-8") as fh:
-            fh.write(content.rstrip("\n") + "\n\n" + block)
+            fh.write(content)
         report["bridges_created"].append(root_path)
 
 
@@ -270,7 +334,11 @@ def print_summary(mode, migrate, root, report):
     for f in report["bridges_appended"]:
         log(f"  bridge agregado (append) a: {f}")
     for f in report["bridges_skipped"]:
-        log(f"  bridge ya presente, no tocado: {f}")
+        log(f"  bridge ya al día, no tocado: {f}")
+    for f in report["bridges_updated"]:
+        log(f"  bridge resincronizado (bloque administrado reemplazado, resto del archivo intacto): {f}")
+    for f in report["bridges_stale"]:
+        log(f"  bridge desactualizado, no tocado (corré con --update-docs para resincronizarlo): {f}")
     if report.get("index_stats"):
         s = report["index_stats"]
         log(f"  indexación: {s['nodes']} nodos, {s['edges']} edges, {s['communities']} comunidades")
@@ -331,8 +399,10 @@ DOC_ONLY_MAP = [
 
 def update_docs(root, report):
     """Sobreescribe SOLO la documentación genérica del patrón (GRAPH.md,
-    graph/README.md, roles/*.md) con la versión actual del plugin. Hace
-    un .bak del archivo viejo antes de tocarlo. Deliberadamente NO toca:
+    graph/README.md, roles/*.md) con la versión actual del plugin, y
+    resincroniza el bloque administrado de AGENTS.md/CLAUDE.md (idempotente,
+    preserva todo lo que el usuario haya escrito fuera del bloque). Hace un
+    .bak del archivo viejo antes de tocar los docs. Deliberadamente NO toca:
     circuit-breaker.yml, gates/policy.yml, roles/registry.yml (puede tener
     roles custom), progress.md, tasks.md — esos son estado o config del
     proyecto, no documentación genérica del patrón."""
@@ -355,6 +425,10 @@ def update_docs(root, report):
         shutil.copyfile(src, dst)
         report["docs_updated"].append(dst)
 
+    legacy_exists = os.path.isfile(os.path.join(root, ".agents", "graph", "legacy-system.md"))
+    place_bridge(root, "AGENTS.md", report, legacy_exists, update=True)
+    place_bridge(root, "CLAUDE.md", report, legacy_exists, update=True)
+
 
 def main():
     parser = argparse.ArgumentParser(description="Bootstrap standalone del patrón GRAPH (sin plugin system).")
@@ -365,8 +439,10 @@ def main():
                          help="Vuelve a correr build-graph.py y reconciliar git, aunque knowledge/index.json ya exista. No toca nada más.")
     parser.add_argument("--update-docs", action="store_true",
                          help="Sobreescribe GRAPH.md, graph/README.md y roles/*.md con la versión actual del plugin "
-                              "(hace .bak del archivo viejo antes). NUNCA toca circuit-breaker.yml, gates/policy.yml, "
-                              "progress.md ni tasks.md — esos son tuyos.")
+                              "(hace .bak del archivo viejo antes), y resincroniza el bloque administrado de "
+                              "AGENTS.md/CLAUDE.md de forma idempotente (reemplaza solo lo que está entre "
+                              "los marcadores template-ia:bridge-block, preserva el resto del archivo tal cual). "
+                              "NUNCA toca circuit-breaker.yml, gates/policy.yml, progress.md ni tasks.md — esos son tuyos.")
     args = parser.parse_args()
 
     root = os.path.abspath(args.repo_root)
@@ -377,6 +453,7 @@ def main():
     report = {
         "created": [], "skipped": [], "migrated": [], "migration_skipped": [],
         "folders_created": [], "bridges_created": [], "bridges_appended": [], "bridges_skipped": [],
+        "bridges_updated": [], "bridges_stale": [],
         "index_stats": None, "index_skipped": False, "git_reconciled": None,
         "docs_updated": [], "docs_backed_up": [],
     }
