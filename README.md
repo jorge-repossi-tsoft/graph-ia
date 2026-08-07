@@ -129,7 +129,7 @@ El wrapper busca `template-ia.py` en este orden:
 1. `TEMPLATE_IA_SCRIPT`
 2. `TEMPLATE_IA_ROOT\scripts\template-ia.py`
 3. el checkout local del repo del plugin
-4. la instalación activa de Codex vía `codex plugin list`
+4. la instalaciÃ³n activa de Codex vÃ­a `codex plugin list`
 
 Uso:
 
