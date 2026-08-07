@@ -117,6 +117,30 @@ Python — nada de instalar ni depender de ninguna herramienta externa. Eso
 es lo que hace posible el principio **A (Agnostic)**: cualquiera lo corre,
 en cualquier proyecto, sin pedirle nada más que tener Python 3.
 
+## `graph` CLI
+
+Para no depender de rutas largas, el repo incluye un wrapper en `bin/`:
+
+- `bin/graph.ps1`
+- `bin/graph.cmd`
+
+El wrapper busca `template-ia.py` en este orden:
+
+1. `TEMPLATE_IA_SCRIPT`
+2. `TEMPLATE_IA_ROOT\scripts\template-ia.py`
+3. el checkout local del repo del plugin
+4. la instalaci�n activa de Codex v�a `codex plugin list`
+
+Uso:
+
+```bash
+graph --reindex
+graph --update-docs
+graph --mode=greenfield
+graph --mode=brownfield --migrate
+```
+
+Si no encuentra `template-ia.py`, falla con un mensaje claro para que puedas instalar el plugin o apuntar el checkout correcto sin tocar rutas fijas.
 ## Contribuir
 
 Es un patrón pensado para ser colaborativo — si mejorás el indexador, los
