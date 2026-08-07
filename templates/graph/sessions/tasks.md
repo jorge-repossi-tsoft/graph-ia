@@ -23,9 +23,11 @@
 ## Backlog del proyecto
 ### Tareas pendientes
 - [ ] <tarea 1>
+    - id: T-YYYYMMDD-001
     - type: page
     - path: app/pages/home.tsx
 - [ ] <tarea 2>
+    - id: T-YYYYMMDD-002
     - type: api
     - path: app/api/items/route.ts
 
@@ -48,3 +50,10 @@ Comandos de backlog soportados: `#task`, `#run`, `#run-all`, `#done`,
 Las tareas pueden llevar un bloque de metadata indentado debajo de la línea de
 la tarea, para que los agentes y el gestor del backlog puedan leer campos como
 `type`, `path`, `file`, `community`, `priority`, `description`, etc.
+
+El campo `id` (`T-YYYYMMDD-NNN`, contador por día) es la referencia estable
+de la tarea: no se pisa nunca y no depende de la posición actual en
+`### Tareas pendientes`. `#run`, `#done`, `#skip` y `#note` aceptan tanto la
+posición entre pendientes como este ID — usá el ID para referenciar una
+tarea mencionada en un turno anterior, porque la posición se corre si de
+por medio se completó, salteó o agregó otra tarea.
