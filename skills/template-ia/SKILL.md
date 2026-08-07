@@ -118,19 +118,30 @@ there, as documentation of what's enforcing what.
 ### 4. Place the AGENTS.md / CLAUDE.md bridge
 
 Codex and equivalent tools auto-discover `AGENTS.md` from the **repo
-root**, not from inside `.agents/`. So:
+root**, not from inside `.agents/`. The bridge lives inside a managed block
+delimited by `<!-- template-ia:bridge-block -->` and
+`<!-- /template-ia:bridge-block -->`, so it can be found and replaced later
+without touching anything else in the file:
 
 1. Look for `AGENTS.md` first at repo root, then at `.agents/AGENTS.md`.
-2. If found at either location: check if it already contains the marker
-   `<!-- template-ia:bridge-block -->`. If yes, skip (already bridged). If
-   no, **append** (never rewrite existing content) a block pointing to
-   `graph/GRAPH.md`, `roles/registry.yml`, `graph/gates/policy.yml`,
-   `graph/sessions/progress.md`/`tasks.md` — using the `.agents/` prefix
-   only if the file lives at repo root, no prefix if it's already inside
-   `.agents/`. If `.agents/graph/legacy-system.md` exists (from step 0),
-   add a line pointing to it too.
+2. If found at either location:
+   - No start marker present: **append** (never rewrite existing content) a
+     managed block — start marker, body pointing to `graph/GRAPH.md`,
+     `roles/registry.yml`, `graph/gates/policy.yml`,
+     `graph/sessions/progress.md`/`tasks.md`, end marker — using the
+     `.agents/` prefix only if the file lives at repo root, no prefix if
+     it's already inside `.agents/`. If `.agents/graph/legacy-system.md`
+     exists (from step 0), add a line pointing to it too.
+   - Start marker present but the block content is stale (differs from
+     the current plugin's block, or has no end marker yet from an older
+     install): leave it untouched here and report it as stale — Step 8
+     (`--update-docs`) is what resynchronizes it in place, without
+     touching anything outside the block.
+   - Block already matches the current plugin version: skip.
 3. If not found anywhere: copy `${PLUGIN_ROOT}/templates/AGENTS.md`
    to the repo root (not into `.agents/`) — that's where tools discover it.
+   That template already contains the full managed block; don't append
+   anything extra or the block will be duplicated.
 4. Also place `CLAUDE.md` the same way, in case the project later gets
    opened with Claude Code too — it's inert documentation for any tool
    that doesn't look for it, so it doesn't hurt to leave it.
@@ -187,12 +198,21 @@ with this plugin — never config, never user data:
 For each: if the destination differs from the template, back it up to
 `<file>.bak` first, then overwrite. If already identical, skip silently.
 
+This is also the entry point that resynchronizes the AGENTS.md/CLAUDE.md
+managed block: replace exactly the span between
+`<!-- template-ia:bridge-block -->` and `<!-- /template-ia:bridge-block -->`
+(or, for a pre-existing bridge with no end marker, from the start marker to
+end of file) with the current plugin's block. Nothing outside that span —
+including content the user added after the block — gets touched. Skip
+silently if the block already matches; safe to run repeatedly.
+
 **Never** touch with this flag: `circuit-breaker.yml`, `gates/policy.yml`,
 `roles/registry.yml`, `sessions/progress.md`, `sessions/tasks.md` —
 protected config or the user's own project state.
 
 Report which files were updated and which `.bak` files were created, if
-any.
+any, plus whether the AGENTS.md/CLAUDE.md bridge blocks were resynced,
+already up to date, or newly created.
 
 Never invent node/edge/community counts — compute them from what actually
 ran, or state plainly that they're not available yet.
