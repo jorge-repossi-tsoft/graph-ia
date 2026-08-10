@@ -1,3 +1,22 @@
+#Requires -Version 5.1
+<#
+.SYNOPSIS
+  Wrapper corto para scripts/template-ia.py (Windows).
+
+.DESCRIPTION
+  Resuelve template-ia.py en este orden:
+    1. $env:TEMPLATE_IA_SCRIPT (ruta directa al script)
+    2. $env:TEMPLATE_IA_ROOT\scripts\template-ia.py
+    3. ..\scripts\template-ia.py relativo a este wrapper (checkout local)
+    4. la instalación de marketplace activa de Codex ('codex plugin list')
+  y lo ejecuta con el primer intérprete de Python disponible (py -3,
+  python, python3), pasando el directorio actual como repo_root.
+
+.NOTES
+  Mismo contrato que bin/graph (la versión POSIX para Linux/macOS).
+#>
+
+[CmdletBinding()]
 param(
   [Parameter(ValueFromRemainingArguments = $true)]
   [string[]]$GraphArgs
@@ -16,11 +35,10 @@ function Resolve-TemplateIaScript {
     $candidates.Add((Join-Path $env:TEMPLATE_IA_ROOT 'scripts\template-ia.py'))
   }
 
-  # Local checkout of the plugin repo: bin\graph.ps1 -> ..\scripts\template-ia.py
-  $localScript = Join-Path $PSScriptRoot '..\scripts\template-ia.py'
-  $candidates.Add($localScript)
+  # Checkout local del repo del plugin: bin\graph.ps1 -> ..\scripts\template-ia.py
+  $candidates.Add((Join-Path $PSScriptRoot '..\scripts\template-ia.py'))
 
-  # Installed marketplace copy from Codex
+  # Instalación de marketplace de Codex
   if (Get-Command codex -ErrorAction SilentlyContinue) {
     try {
       $output = & codex plugin list 2>$null
@@ -46,7 +64,8 @@ function Resolve-TemplateIaScript {
       }
     }
     catch {
-      # If Codex is unavailable, keep falling back to other candidates.
+      # Codex no disponible o con otra estructura de salida: seguir con el
+      # resto de los candidatos.
     }
   }
 
@@ -63,15 +82,50 @@ Probé estas opciones:
 - TEMPLATE_IA_SCRIPT
 - TEMPLATE_IA_ROOT\scripts\template-ia.py
 - ..\scripts\template-ia.py relativo a este wrapper
-- la instalación de Codex via 'codex plugin list'
+- la instalación de Codex vía 'codex plugin list'
 
 Instalá el plugin o definí TEMPLATE_IA_ROOT/TEMPLATE_IA_SCRIPT.
 "@
 }
 
+function Resolve-PythonInvocation {
+  # Devuelve @{ Exe = ...; PrefixArgs = @(...) } para el primer Python
+  # utilizable. 'py -3' primero (launcher oficial de Windows), después
+  # python/python3 del PATH. Se valida que el intérprete arranque de
+  # verdad — en Windows, 'python' puede ser el alias falso de la
+  # Microsoft Store que abre un navegador en vez de ejecutar.
+  $attempts = @(
+    @{ Exe = 'py';      PrefixArgs = @('-3') },
+    @{ Exe = 'python';  PrefixArgs = @() },
+    @{ Exe = 'python3'; PrefixArgs = @() }
+  )
+
+  foreach ($attempt in $attempts) {
+    if (-not (Get-Command $attempt.Exe -ErrorAction SilentlyContinue)) { continue }
+    try {
+      $null = & $attempt.Exe @($attempt.PrefixArgs + '--version') 2>$null
+      if ($LASTEXITCODE -eq 0) { return $attempt }
+    }
+    catch { }
+  }
+
+  throw @"
+No encontré un intérprete de Python 3 utilizable (probé: py -3, python, python3).
+
+Instalá Python 3 desde https://www.python.org/downloads/ y asegurate de
+marcar "Add python.exe to PATH" durante la instalación.
+"@
+}
+
 $templateIaScript = Resolve-TemplateIaScript
+$python = Resolve-PythonInvocation
 $repoRoot = (Get-Location).Path
 
-$arguments = @($templateIaScript, $repoRoot) + $GraphArgs
-$process = Start-Process -FilePath 'py' -ArgumentList $arguments -NoNewWindow -Wait -PassThru
-exit $process.ExitCode
+if ($null -eq $GraphArgs) { $GraphArgs = @() }
+$allArgs = @($python.PrefixArgs) + @($templateIaScript, $repoRoot) + $GraphArgs
+
+# Invocación directa (no Start-Process): hereda stdin/stdout/stderr de la
+# consola, respeta rutas con espacios sin re-quoting manual, y deja el exit
+# code real en $LASTEXITCODE.
+& $python.Exe @allArgs
+exit $LASTEXITCODE

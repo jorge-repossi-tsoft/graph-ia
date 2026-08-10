@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# graph — wrapper corto para scripts/template-ia.py (Linux/macOS).
+#
+# Resuelve template-ia.py en este orden:
+#   1. TEMPLATE_IA_SCRIPT (ruta directa al script)
+#   2. TEMPLATE_IA_ROOT/scripts/template-ia.py
+#   3. ../scripts/template-ia.py relativo a este wrapper (checkout local)
+#   4. la instalación de marketplace activa de Codex ('codex plugin list')
+# y lo ejecuta con el primer intérprete de Python 3 disponible, pasando el
+# directorio actual como repo_root.
+#
+# Mismo contrato que bin/graph.ps1 (la versión para Windows).
+
+set -euo pipefail
+
+resolve_script() {
+  if [[ -n "${TEMPLATE_IA_SCRIPT:-}" && -f "${TEMPLATE_IA_SCRIPT:-}" ]]; then
+    printf '%s\n' "$TEMPLATE_IA_SCRIPT"
+    return 0
+  fi
+
+  if [[ -n "${TEMPLATE_IA_ROOT:-}" && -f "${TEMPLATE_IA_ROOT}/scripts/template-ia.py" ]]; then
+    printf '%s\n' "${TEMPLATE_IA_ROOT}/scripts/template-ia.py"
+    return 0
+  fi
+
+  # Checkout local del repo del plugin: bin/graph -> ../scripts/template-ia.py
+  local script_dir local_script
+  script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+  local_script="$script_dir/../scripts/template-ia.py"
+  if [[ -f "$local_script" ]]; then
+    printf '%s\n' "$(cd "$(dirname "$local_script")" && pwd)/template-ia.py"
+    return 0
+  fi
+
+  # Instalación de marketplace de Codex
+  if command -v codex >/dev/null 2>&1; then
+    local output in_block marketplace_root
+    output="$(codex plugin list 2>/dev/null || true)"
+    in_block=0
+    while IFS= read -r line; do
+      if [[ "$line" =~ ^[[:space:]]*Marketplace[[:space:]]\`?template-ia\`?[[:space:]]*$ ]]; then
+        in_block=1
+        continue
+      fi
+      if [[ $in_block -eq 1 && "$line" =~ ^[[:space:]]*(/[^[:space:]].*)$ ]]; then
+        marketplace_root="${BASH_REMATCH[1]}"
+        if [[ -n "$marketplace_root" && -f "$marketplace_root/scripts/template-ia.py" ]]; then
+          printf '%s\n' "$marketplace_root/scripts/template-ia.py"
+          return 0
+        fi
+      fi
+      if [[ $in_block -eq 1 && "$line" =~ ^[[:space:]]*Marketplace[[:space:]] ]]; then
+        in_block=0
+      fi
+    done <<< "$output"
+  fi
+
+  return 1
+}
+
+resolve_python() {
+  local candidate
+  for candidate in python3 python; do
+    if command -v "$candidate" >/dev/null 2>&1 && "$candidate" --version >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  return 1
+}
+
+if ! SCRIPT_PATH="$(resolve_script)"; then
+  cat >&2 <<'EOF'
+No encontré template-ia.py.
+
+Probé estas opciones:
+- TEMPLATE_IA_SCRIPT
+- TEMPLATE_IA_ROOT/scripts/template-ia.py
+- ../scripts/template-ia.py relativo a este wrapper
+- la instalación de Codex vía 'codex plugin list'
+
+Instalá el plugin o definí TEMPLATE_IA_ROOT/TEMPLATE_IA_SCRIPT.
+EOF
+  exit 1
+fi
+
+if ! PYTHON_BIN="$(resolve_python)"; then
+  echo "No encontré un intérprete de Python 3 utilizable (probé: python3, python). Instalá Python 3 y volvé a intentar." >&2
+  exit 1
+fi
+
+exec "$PYTHON_BIN" "$SCRIPT_PATH" "$(pwd)" "$@"
