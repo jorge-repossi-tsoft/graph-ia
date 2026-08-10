@@ -36,7 +36,7 @@ Explicación en criollo: `.agents/graph/README.md`.
 
 ## Qué instala
 
-```
+```text
 .agents/
 ├── graph/
 │   ├── GRAPH.md              → spec completa del patrón
@@ -63,7 +63,6 @@ Los prompts `#run` / `#run-all` ordenan la ejecución de tareas pendientes en
 puntuales, y `#note` deja notas fechadas en una tarea. Toda operación que
 cambie el estado del backlog debe quedar registrada en
 `.agents/graph/sessions/progress.md`.
-
 
 ## Comandos de backlog (`#task`, `#run`, `#run-all`, `#done`, `#skip`, `#note`)
 
@@ -121,8 +120,12 @@ en cualquier proyecto, sin pedirle nada más que tener Python 3.
 
 Para no depender de rutas largas, el repo incluye un wrapper en `bin/`:
 
-- `bin/graph.ps1`
-- `bin/graph.cmd`
+- `bin/graph.ps1` + `bin/graph.cmd` (Windows)
+- `bin/graph` (Linux/macOS)
+
+El comando se registra solo en tu PATH de usuario la primera vez que usás
+el plugin (vía hook en Claude Code/Codex, o al correr `install.sh`) — solo
+hace falta abrir una terminal nueva esa primera vez.
 
 El wrapper busca `template-ia.py` en este orden:
 
@@ -141,6 +144,7 @@ graph --mode=brownfield --migrate
 ```
 
 Si no encuentra `template-ia.py`, falla con un mensaje claro para que puedas instalar el plugin o apuntar el checkout correcto sin tocar rutas fijas.
+
 ## Contribuir
 
 Es un patrón pensado para ser colaborativo — si mejorás el indexador, los
@@ -149,7 +153,6 @@ hooks, o encontrás un bug real (probado, no teórico), un PR es bienvenido.
 ## Licencia
 
 MIT — ver [LICENSE](./LICENSE).
-
 
 ## Release Package
 
