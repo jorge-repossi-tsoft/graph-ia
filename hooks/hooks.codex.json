@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "${PLUGIN_ROOT}/hooks/session-reset-hook.sh"
+          },
+          {
+            "type": "command",
+            "command": "${PLUGIN_ROOT}/hooks/cli-install-hook.sh"
           }
         ]
       }
