@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# install.sh â€” instalador universal de GRAPH.
+# install.sh — instalador universal de GRAPH.
 #
-# No depende de Claude Code, Codex CLI, Cursor ni de ningÃºn otro agente en
-# particular â€” es un script de bash + python3 que corrÃ©s vos, una vez, en
-# la raÃ­z de tu proyecto. DespuÃ©s, CUALQUIER agente que lea AGENTS.md (que
-# es un estÃ¡ndar abierto, no de una sola empresa) va a encontrar el
+# No depende de Claude Code, Codex CLI, Cursor ni de ningún otro agente en
+# particular — es un script de bash + python3 que corrés vos, una vez, en
+# la raíz de tu proyecto. Después, CUALQUIER agente que lea AGENTS.md (que
+# es un estándar abierto, no de una sola empresa) va a encontrar el
 # contexto igual. Esto es lo que hace posible el principio A (Agnostic) de
 # verdad: no hay plugin de por medio que ate esto a una sola herramienta.
 #
@@ -13,10 +13,10 @@
 #   bash install.sh --mode=brownfield [--migrate]
 #
 # Nota sobre el circuit breaker: los 3 hooks de enforcement (bloqueo real
-# de acciones) SÃ dependen de que tu agente tenga un sistema de hooks
+# de acciones) SÍ dependen de que tu agente tenga un sistema de hooks
 # compatible (hoy, eso es Claude Code). Si tu agente no tiene eso, GRAPH
-# igual te da el resto del patrÃ³n (grounding, gates, persistencia,
-# jerarquÃ­a) â€” el freno de mano queda como configuraciÃ³n documentada en
+# igual te da el resto del patrón (grounding, gates, persistencia,
+# jerarquía) — el freno de mano queda como configuración documentada en
 # circuit-breaker.yml, para cuando tu herramienta lo soporte.
 set -euo pipefail
 
@@ -61,11 +61,11 @@ if [ "$UPDATE" = true ]; then
     exit 1
   fi
   if ! [ -d "$REPO_ROOT/.agents/graph" ]; then
-    echo "No hay .agents/graph/ en este repo â€” corré install.sh --mode=... primero." >&2
+    echo "No hay .agents/graph/ en este repo — corré install.sh --mode=... primero." >&2
     exit 1
   fi
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "No hay python3 disponible â€” --update depende de scripts/template-ia.py para" >&2
+    echo "No hay python3 disponible — --update depende de scripts/template-ia.py para" >&2
     echo "resincronizar AGENTS.md/CLAUDE.md y la documentación del patrón sin duplicar" >&2
     echo "ni pisar contenido propio. Instalá Python 3 y volvé a correr install.sh --update." >&2
     exit 1
@@ -79,7 +79,7 @@ if [ -z "$MODE" ]; then
   exit 1
 fi
 
-echo "== GRAPH install â€” modo: $MODE (migrate: $MIGRATE) =="
+echo "== GRAPH install — modo: $MODE (migrate: $MIGRATE) =="
 
 # --- safe_copy: nunca pisa un archivo que ya existe ---
 safe_copy() {
@@ -93,9 +93,9 @@ safe_copy() {
   fi
 }
 
-# --- Paso 0: migraciÃ³n opcional ---
+# --- Paso 0: migración opcional ---
 if [ "$MIGRATE" = true ]; then
-  echo "-- Paso 0: migraciÃ³n de .agents/ previo --"
+  echo "-- Paso 0: migración de .agents/ previo --"
   today="$(date +%Y-%m-%d)"
   for pair in "progress.md:.agents/graph/sessions/progress.md" \
               "tasks.md:.agents/graph/sessions/tasks.md" \
@@ -105,11 +105,11 @@ if [ "$MIGRATE" = true ]; then
     old_path=".agents/$old_name"
     if [ -f "$old_path" ]; then
       if [ -e "$new_path" ]; then
-        echo "  [skip] $old_path y $new_path existen los dos â€” no se toca ninguno, resolvelo a mano."
+        echo "  [skip] $old_path y $new_path existen los dos — no se toca ninguno, resolvelo a mano."
       else
         mkdir -p "$(dirname "$new_path")"
         {
-          echo "<!-- Migrado automÃ¡ticamente desde $old_path el $today -->"
+          echo "<!-- Migrado automáticamente desde $old_path el $today -->"
           echo
           cat "$old_path"
         } > "$new_path"
@@ -140,19 +140,19 @@ if [ -e "$INDEX_FILE" ]; then
 else
   if [ "$MODE" = "greenfield" ]; then
     cat > "$INDEX_FILE" << 'EOF'
-{"status": "empty", "reason": "greenfield â€” se puebla en paralelo al cÃ³digo", "last_indexed": null}
+{"status": "empty", "reason": "greenfield — se puebla en paralelo al código", "last_indexed": null}
 EOF
-    echo "  [ok]   greenfield: index.json vacÃ­o"
+    echo "  [ok]   greenfield: index.json vacío"
   else
-    echo '{"status": "indexing", "reason": "brownfield â€” indexaciÃ³n inicial en curso", "last_indexed": null}' > "$INDEX_FILE"
+    echo '{"status": "indexing", "reason": "brownfield — indexación inicial en curso", "last_indexed": null}' > "$INDEX_FILE"
     if command -v python3 >/dev/null 2>&1; then
       echo "  corriendo el indexador propio (sin dependencias de terceros)..."
       python3 "$SCRIPT_DIR/scripts/build-graph.py" "$REPO_ROOT"
       echo "  [ok]   indexado real generado en knowledge/nodes/ y knowledge/communities/"
     else
-      echo "  [WARN] no hay python3 disponible â€” el indexado real NO se pudo correr."
+      echo "  [WARN] no hay python3 disponible — el indexado real NO se pudo correr."
       echo "         knowledge/index.json queda en estado 'indexing' (degradado)."
-      echo "         InstalÃ¡ Python 3 y corrÃ©: python3 scripts/build-graph.py . para completarlo."
+      echo "         Instalá Python 3 y corré: python3 scripts/build-graph.py . para completarlo."
     fi
   fi
 fi
@@ -181,19 +181,19 @@ if [ ! -f ".agents/graph/sessions/tasks.md" ]; then
   fi
 fi
 
-# --- Paso 4: bridge AGENTS.md / CLAUDE.md en la raÃ­z del repo ---
+# --- Paso 4: bridge AGENTS.md / CLAUDE.md en la raíz del repo ---
 echo "-- Paso 4: bridge AGENTS.md / CLAUDE.md --"
-# La lÃ³gica real (bloque administrado con marcador de inicio y cierre,
-# reemplazo idempotente, prefijo .agents/ segÃºn dÃ³nde viva el archivo) vive
-# en una sola fuente de verdad: scripts/template-ia.py. Delegamos ahÃ­ en vez
+# La lógica real (bloque administrado con marcador de inicio y cierre,
+# reemplazo idempotente, prefijo .agents/ según dónde viva el archivo) vive
+# en una sola fuente de verdad: scripts/template-ia.py. Delegamos ahí en vez
 # de reimplementar el mismo bloque en bash, para que no puedan desincronizarse
 # dos versiones del texto del bridge.
 if command -v python3 >/dev/null 2>&1; then
   python3 "$SCRIPT_DIR/scripts/template-ia.py" "$REPO_ROOT" --update-docs
 else
-  echo "  [WARN] no hay python3 â€” usando un bridge mÃ­nimo degradado (sin los"
+  echo "  [WARN] no hay python3 — usando un bridge mínimo degradado (sin los"
   echo "         comandos #task/#run/#done/#skip/#note documentados)."
-  echo "         InstalÃ¡ Python 3 y corrÃ©: python3 scripts/template-ia.py . --update-docs"
+  echo "         Instalá Python 3 y corré: python3 scripts/template-ia.py . --update-docs"
   echo "         para completarlo con el bridge real del plugin."
   place_bridge() {
     local filename="$1"
@@ -215,11 +215,11 @@ else
           echo ""
           echo "<!-- template-ia:bridge-block -->"
           echo "## GRAPH"
-          echo "Este proyecto usa el patrÃ³n GRAPH. Antes de actuar de forma autÃ³noma,"
-          echo "consultÃ¡:"
+          echo "Este proyecto usa el patrón GRAPH. Antes de actuar de forma autónoma,"
+          echo "consultá:"
           echo "- \`.agents/graph/GRAPH.md\` (spec completa)"
-          echo "- \`.agents/roles/registry.yml\` (quÃ© rol puede hacer quÃ©)"
-          echo "- \`.agents/graph/gates/policy.yml\` (quÃ© necesita aprobaciÃ³n humana)"
+          echo "- \`.agents/roles/registry.yml\` (qué rol puede hacer qué)"
+          echo "- \`.agents/graph/gates/policy.yml\` (qué necesita aprobación humana)"
           echo "- \`.agents/graph/sessions/progress.md\` y \`tasks.md\` (estado actual)"
           if [ -f ".agents/graph/legacy-system.md" ]; then
             echo "- \`.agents/graph/legacy-system.md\` (doc previa migrada, referencia)"
@@ -231,7 +231,7 @@ else
     else
       safe_copy "$SCRIPT_DIR/templates/$filename" "./$filename"
       # El fallback sin python3 no resuelve el placeholder de la línea de
-      # legacy-system.md (eso requiere el script) â€” lo sacamos siempre para
+      # legacy-system.md (eso requiere el script) — lo sacamos siempre para
       # no dejar el comentario crudo en el archivo.
       if [ -f "./$filename" ]; then
         grep -v "template-ia:legacy-line" "./$filename" > "./$filename.tmp" && mv "./$filename.tmp" "./$filename"
@@ -242,19 +242,35 @@ else
   place_bridge "CLAUDE.md"
 fi
 
+# --- Paso 5: comando `graph` en el PATH del usuario ---
+# La lógica vive en hooks/cli-install-hook.sh (la misma que corren los
+# plugins de Claude Code y Codex en cada turno) — así Cursor o cualquier
+# instalación universal obtiene el CLI igual, sin pasos manuales.
+echo "-- Paso 5: comando 'graph' en el PATH --"
+if [ -f "$SCRIPT_DIR/hooks/cli-install-hook.sh" ]; then
+  bash "$SCRIPT_DIR/hooks/cli-install-hook.sh" || true
+  if command -v graph >/dev/null 2>&1; then
+    echo "  [ok]   'graph' ya estaba disponible en el PATH"
+  else
+    echo "  [ok]   'graph' registrado — abrí una terminal nueva para usarlo"
+  fi
+else
+  echo "  [skip] no encontré hooks/cli-install-hook.sh en el checkout"
+fi
+
 echo ""
 echo "== Listo =="
 echo "Estructura de GRAPH instalada en .agents/. Nada existente fue sobreescrito."
 if [ "$MODE" = "brownfield" ] && ! command -v python3 >/dev/null 2>&1; then
   echo ""
-  echo "âš ï¸  RECORDATORIO: el indexado real quedÃ³ pendiente (no habÃ­a python3)."
-  echo "   Sin esto, el principio Grounded no estÃ¡ satisfecho todavÃ­a."
+  echo "⚠️  RECORDATORIO: el indexado real quedó pendiente (no había python3)."
+  echo "   Sin esto, el principio Grounded no está satisfecho todavía."
 fi
 echo ""
 echo "Sobre el circuit breaker (freno de mano):"
-echo "- Si usÃ¡s Claude Code: instalÃ¡ tambiÃ©n el plugin de este mismo repo"
+echo "- Si usás Claude Code: instalá también el plugin de este mismo repo"
 echo "  (/plugin marketplace add + /plugin install) para que los 3 hooks"
 echo "  bloqueen de verdad, no solo como config declarada."
 echo "- Con otro agente: circuit-breaker.yml y gates/policy.yml quedan como"
-echo "  contrato documentado â€” el agente lo respeta si lo lee vÃ­a AGENTS.md,"
+echo "  contrato documentado — el agente lo respeta si lo lee vía AGENTS.md,"
 echo "  pero el bloqueo forzado depende de que esa herramienta tenga hooks."
