@@ -120,22 +120,28 @@ marketplace add --help` / `codex plugin add --help`). Si tu versión da
 error de "subcomando no reconocido", corré esos mismos `--help` para
 confirmar la sintaxis de tu versión puntual.
 
-### 5. Atajo opcional de terminal: `graph`
+### 5. Comando de terminal `graph` (se instala solo)
 
-Si querés evitar escribir la ruta completa del script cada vez, el repo del
-plugin incluye un wrapper en `bin/`:
+El plugin trae un CLI corto, `graph`, que **se registra solo en tu PATH de
+usuario** la primera vez que usás el plugin (lo hace un hook, tanto en
+Claude Code como en Codex; la instalación universal con `install.sh` también
+lo registra). No hay que agregar nada al PATH a mano — solo abrir una
+terminal nueva después de la primera vez, porque los cambios de PATH no
+aplican a terminales que ya estaban abiertas.
 
-- `bin/graph.ps1`
-- `bin/graph.cmd`
+Los wrappers viven en `bin/` del checkout del plugin:
 
-Ese wrapper busca `template-ia.py` en este orden:
+- `bin/graph.ps1` + `bin/graph.cmd` (Windows)
+- `bin/graph` (Linux/macOS)
+
+Buscan `template-ia.py` en este orden:
 
 1. `TEMPLATE_IA_SCRIPT`
 2. `TEMPLATE_IA_ROOT\scripts\template-ia.py`
 3. el checkout local del repo del plugin
 4. la instalación activa de Codex vía `codex plugin list`
 
-Uso:
+Uso, desde cualquier terminal, parado en la raíz de tu proyecto:
 
 ```bash
 graph --reindex
@@ -146,6 +152,7 @@ graph --mode=brownfield --migrate
 
 Si no encuentra `template-ia.py`, falla con un mensaje claro para que puedas
 instalar el plugin o apuntar el checkout correcto sin tocar rutas fijas.
+
 ## Qué hace, en una línea
 
 Arma `.agents/graph/` (spec, config del circuit breaker, gates de
