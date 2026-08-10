@@ -20,7 +20,13 @@ iteration_cap:
 stagnation_detection:
   enabled: true
   # Ciclos consecutivos sin progreso medible antes de disparar el corte.
-  no_progress_threshold: 3
+  # La señal real implementada (ver hooks/stagnation-hook.sh) es solo "el
+  # diff de git no cambió" — no distingue verificación legítima (correr
+  # tests, git status, greps) de un loop real sin avanzar. Con un umbral
+  # bajo (3), secuencias normales de lectura/verificación entre ediciones
+  # disparan falsos positivos seguido. 20 da margen para eso sin desactivar
+  # del todo la detección de loops genuinos.
+  no_progress_threshold: 20
   # Qué cuenta como "progreso" — ajustar según el tipo de proyecto.
   progress_signals:
     - files_changed
