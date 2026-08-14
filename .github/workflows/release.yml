@@ -15,11 +15,22 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+
+      - name: Validate text encoding
+        run: |
+          BASE_SHA="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          if [ -n "$BASE_SHA" ]; then
+            python scripts/check-text-encoding.py --ref "$BASE_SHA"
+          else
+            python scripts/check-text-encoding.py --staged
+          fi
 
       - name: Build release bundle
         run: python scripts/build-release.py --versioned

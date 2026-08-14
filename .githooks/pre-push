@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$HOOK_DIR/.." && pwd)"
+
+PYTHON_BIN=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+elif command -v python >/dev/null 2>&1; then
+  PYTHON_BIN="python"
+else
+  echo "pre-push: no encontr? python3 ni python en el PATH" >&2
+  exit 1
+fi
+
+REF=""
+if git rev-parse --abbrev-ref --symbolic-full-name @{u} >/dev/null 2>&1; then
+  REF="$(git rev-parse --abbrev-ref --symbolic-full-name @{u})"
+elif git rev-parse HEAD^ >/dev/null 2>&1; then
+  REF="HEAD^"
+fi
+
+if [ -n "$REF" ]; then
+  exec "$PYTHON_BIN" "$REPO_ROOT/scripts/check-text-encoding.py" --ref "$REF"
+fi
+
+exec "$PYTHON_BIN" "$REPO_ROOT/scripts/check-text-encoding.py" --staged

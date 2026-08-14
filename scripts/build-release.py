@@ -19,6 +19,7 @@ CLAUDE_PLUGIN_MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 CODEX_PLUGIN_MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 
 TOP_LEVEL_FILES = [
+    ".editorconfig",
     "README.md",
     "INSTALL.md",
     "LICENSE",
@@ -28,6 +29,7 @@ TOP_LEVEL_FILES = [
 TOP_LEVEL_DIRS = [
     ".claude-plugin",
     ".codex-plugin",
+    ".githooks",
     "commands",
     "hooks",
     "scripts",
