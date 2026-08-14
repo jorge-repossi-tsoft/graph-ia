@@ -121,5 +121,27 @@ class BridgeSyncTests(unittest.TestCase):
         self.assertNotIn(graph_ia.LEGACY_LINE_PLACEHOLDER, content)
 
 
+
+class MigrationTests(unittest.TestCase):
+    def setUp(self):
+        self.repo = Path(__file__).resolve().parent / f'_tmp_migration_{uuid.uuid4().hex}'
+        (self.repo / '.agents').mkdir(parents=True, exist_ok=False)
+
+    def tearDown(self):
+        shutil.rmtree(self.repo, ignore_errors=True)
+
+    def test_migration_copies_system_md_without_deleting_original(self):
+        system_path = self.repo / '.agents' / 'system.md'
+        system_path.write_text('system original\n', encoding='utf-8')
+
+        report = _fresh_report()
+        graph_ia.do_migration(str(self.repo), report)
+
+        legacy_path = self.repo / '.agents' / 'graph' / 'legacy-system.md'
+        self.assertTrue(system_path.exists())
+        self.assertTrue(legacy_path.exists())
+        self.assertIn((str(system_path), str(legacy_path)), report['migrated'])
+        self.assertIn('system original', legacy_path.read_text(encoding='utf-8'))
+
 if __name__ == '__main__':
     unittest.main()
