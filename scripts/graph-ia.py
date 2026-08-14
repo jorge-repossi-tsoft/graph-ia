@@ -1,27 +1,27 @@
 #!/usr/bin/env python3
 """
-graph-ia.py Ã¢â‚¬â€ bootstrapper standalone del patrÃƒÂ³n GRAPH.
+graph-ia.py — bootstrapper standalone del patrón GRAPH.
 
-ReimplementaciÃƒÂ³n determinÃƒÂ­stica de commands/graph-ia.md (el comando que
-usa el plugin de Claude Code), pero sin depender de ningÃƒÂºn sistema de
+Reimplementación determinística de commands/graph-ia.md (el comando que
+usa el plugin de Claude Code), pero sin depender de ningún sistema de
 plugins ni de que un agente de IA interprete instrucciones. Pensado para
 herramientas sin plugin marketplace propio (Codex, Cursor, o directamente
-sin ningÃƒÂºn agente) Ã¢â‚¬â€ solo necesita Python 3, igual que build-graph.py.
+sin ningún agente) — solo necesita Python 3, igual que build-graph.py.
 
 Uso:
   python3 graph-ia.py [repo_root] --mode=greenfield|brownfield [--migrate]
 
 repo_root por defecto es el directorio actual. Mismo contrato que la
-versiÃƒÂ³n de plugin:
+versión de plugin:
   - nunca pisa un archivo que ya existe (safe copy)
   - brownfield corre el indexador propio (build-graph.py) y reconcilia
     el historial de git
-  - deja AGENTS.md/CLAUDE.md listos en la raÃƒÂ­z del repo objetivo
+  - deja AGENTS.md/CLAUDE.md listos en la raíz del repo objetivo
 
-LÃƒÂ­mite honesto: los 3 hooks de enforcement (circuit breaker) solo se
+Límite honesto: los 3 hooks de enforcement (circuit breaker) solo se
 activan solos cuando GRAPH se instala como plugin de Claude Code. Corrido
-asÃƒÂ­, standalone, Circuit Breaker queda declarativo ÃƒÂºnicamente hasta que
-conectes un adaptador para tu herramienta Ã¢â‚¬â€ ver
+así, standalone, Circuit Breaker queda declarativo únicamente hasta que
+conectes un adaptador para tu herramienta — ver
 .agents/graph/enforcement/README.md.
 """
 import argparse
@@ -37,7 +37,7 @@ TEMPLATES_DIR = os.path.join(SCRIPT_DIR, "..", "templates")
 BRIDGE_MARKER = "<!-- graph-ia:bridge-block -->"
 BRIDGE_END_MARKER = "<!-- /graph-ia:bridge-block -->"
 LEGACY_LINE_PLACEHOLDER = "<!-- graph-ia:legacy-line -->"
-LEGACY_LINE_TEXT = "- `.agents/graph/legacy-system.md` Ã¢â‚¬â€ sistema anterior migrado, consultalo tambiÃƒÂ©n."
+LEGACY_LINE_TEXT = "- `.agents/graph/legacy-system.md` — sistema anterior migrado, consultalo también."
 
 COPY_MAP = [
     ("graph/GRAPH.md", ".agents/graph/GRAPH.md"),
@@ -98,8 +98,8 @@ def do_migration(root, report):
             content = fh.read()
         os.makedirs(os.path.dirname(new_path), exist_ok=True)
         with open(new_path, "w", encoding="utf-8") as fh:
-            fh.write(f"<!-- Migrado automÃƒÂ¡ticamente desde {old_name} el {today} -->\n\n{content}")
-        # Migración no destructiva: conservamos el archivo original del usuario.
+            fh.write(f"<!-- Migrado automáticamente desde {old_name} el {today} -->\n\n{content}")
+        # Migraci?n no destructiva: conservamos el archivo original del usuario.
         report["migrated"].append((old_path, new_path))
 
 
@@ -120,7 +120,7 @@ def init_index(root, mode, report):
     if mode == "greenfield":
         doc = {
             "status": "empty",
-            "reason": "greenfield Ã¢â‚¬â€ se puebla en paralelo al cÃƒÂ³digo",
+            "reason": "greenfield — se puebla en paralelo al código",
             "last_indexed": None,
         }
         os.makedirs(os.path.dirname(index_path), exist_ok=True)
@@ -128,8 +128,8 @@ def init_index(root, mode, report):
             json.dump(doc, fh, indent=2, ensure_ascii=False)
         return
 
-    # brownfield Ã¢â‚¬â€ bloqueante: index -> build-graph.py -> reconciliar git
-    doc = {"status": "indexing", "reason": "brownfield Ã¢â‚¬â€ indexaciÃƒÂ³n inicial en curso", "last_indexed": None}
+    # brownfield — bloqueante: index -> build-graph.py -> reconciliar git
+    doc = {"status": "indexing", "reason": "brownfield — indexación inicial en curso", "last_indexed": None}
     os.makedirs(os.path.dirname(index_path), exist_ok=True)
     with open(index_path, "w", encoding="utf-8") as fh:
         json.dump(doc, fh, indent=2, ensure_ascii=False)
@@ -137,7 +137,7 @@ def init_index(root, mode, report):
     build_graph = os.path.join(SCRIPT_DIR, "build-graph.py")
     result = subprocess.run([sys.executable, build_graph, root], capture_output=True, text=True)
     if result.returncode != 0:
-        log("El indexador (build-graph.py) fallÃƒÂ³:")
+        log("El indexador (build-graph.py) falló:")
         log(result.stderr)
         sys.exit(1)
     report["index_stats"] = json.loads(result.stdout.strip().splitlines()[-1])
@@ -172,7 +172,7 @@ def reconcile_git_history(root, report):
             parts = line.split("|", 2)
             if len(parts) == 3:
                 sha, date, subject = parts
-                lines.append(f"- `{sha[:10]}` ({date}) origen: pre-graph Ã¢â‚¬â€ {subject}")
+                lines.append(f"- `{sha[:10]}` ({date}) origen: pre-graph — {subject}")
                 commit_count += 1
     else:
         lines.append("(no se pudo leer git log)")
@@ -194,7 +194,7 @@ def copy_base_files(root, report):
 
 def _canonical_block(filename, legacy_exists):
     """Lee el bloque administrado (entre marcadores, marcadores incluidos)
-    directamente de templates/<filename> Ã¢â‚¬â€ esa es la ÃƒÂºnica fuente de verdad,
+    directamente de templates/<filename> — esa es la única fuente de verdad,
     para que no se pueda desincronizar de lo que ve un install fresco."""
     src = os.path.join(TEMPLATES_DIR, filename)
     if not os.path.isfile(src):
@@ -209,7 +209,7 @@ def _canonical_block(filename, legacy_exists):
     if legacy_exists:
         block = block.replace(LEGACY_LINE_PLACEHOLDER, LEGACY_LINE_TEXT)
     else:
-        # sacamos el placeholder y la lÃƒÂ­nea en blanco que deja atrÃƒÂ¡s
+        # sacamos el placeholder y la línea en blanco que deja atrás
         block = "\n".join(
             line for line in block.split("\n") if line.strip() != LEGACY_LINE_PLACEHOLDER
         )
@@ -217,7 +217,7 @@ def _canonical_block(filename, legacy_exists):
 
 
 def _adapt_prefix(block, nested):
-    """El bloque canÃƒÂ³nico asume que el archivo vive en la raÃƒÂ­z del repo
+    """El bloque canónico asume que el archivo vive en la raíz del repo
     (paths con prefijo `.agents/`). Si en cambio ya vive adentro de
     `.agents/` (caso `nested`), esos paths son relativos y no llevan
     ese prefijo."""
@@ -258,9 +258,9 @@ def place_bridge(root, filename, report, legacy_exists, update=False):
             return
 
         if start != -1:
-            # formato viejo: tiene marcador de inicio pero no de cierre Ã¢â‚¬â€
-            # asumimos que el bloque viejo ocupaba desde ahÃƒÂ­ hasta el final
-            # del archivo (asÃƒÂ­ lo escribÃƒÂ­an las versiones anteriores).
+            # formato viejo: tiene marcador de inicio pero no de cierre —
+            # asumimos que el bloque viejo ocupaba desde ahí hasta el final
+            # del archivo (así lo escribían las versiones anteriores).
             if desired_block is None:
                 report["bridges_skipped"].append(existing)
                 return
@@ -273,7 +273,7 @@ def place_bridge(root, filename, report, legacy_exists, update=False):
             report["bridges_updated"].append(existing)
             return
 
-        # no hay marcador todavÃƒÂ­a Ã¢â‚¬â€ primera vez que se agrega el bridge
+        # no hay marcador todavía — primera vez que se agrega el bridge
         if desired_block is None:
             return
         new_content = content.rstrip("\n") + "\n\n" + desired_block + "\n"
@@ -300,7 +300,7 @@ def place_bridge(root, filename, report, legacy_exists, update=False):
 def stamp_mode(root, mode, report):
     tasks_path = os.path.join(root, ".agents", "graph", "sessions", "tasks.md")
     if tasks_path not in report["created"]:
-        return  # migrado o ya existÃƒÂ­a Ã¢â‚¬â€ no tocar
+        return  # migrado o ya existía — no tocar
     with open(tasks_path, "r", encoding="utf-8") as fh:
         content = fh.read()
     content = content.replace(
@@ -313,12 +313,12 @@ def stamp_mode(root, mode, report):
 
 def print_summary(mode, migrate, root, report):
     log()
-    log(f"=== graph-ia standalone Ã¢â‚¬â€ {root} Ã¢â‚¬â€ modo {mode} ===")
+    log(f"=== graph-ia standalone — {root} — modo {mode} ===")
     if migrate:
         for old, new in report["migrated"]:
             log(f"  migrado: {old} -> {new}")
         for old, new in report["migration_skipped"]:
-            log(f"  migraciÃƒÂ³n omitida (ya existe destino): {old} / {new} Ã¢â‚¬â€ ambos quedaron intactos")
+            log(f"  migración omitida (ya existe destino): {old} / {new} — ambos quedaron intactos")
     if report["folders_created"]:
         log(f"  carpetas nuevas: {len(report['folders_created'])}")
     if report["created"]:
@@ -334,25 +334,25 @@ def print_summary(mode, migrate, root, report):
     for f in report["bridges_appended"]:
         log(f"  bridge agregado (append) a: {f}")
     for f in report["bridges_skipped"]:
-        log(f"  bridge ya al dÃƒÂ­a, no tocado: {f}")
+        log(f"  bridge ya al día, no tocado: {f}")
     for f in report["bridges_updated"]:
         log(f"  bridge resincronizado (bloque administrado reemplazado, resto del archivo intacto): {f}")
     for f in report["bridges_stale"]:
-        log(f"  bridge desactualizado, no tocado (corrÃƒÂ© con --update-docs para resincronizarlo): {f}")
+        log(f"  bridge desactualizado, no tocado (corré con --update-docs para resincronizarlo): {f}")
     if report.get("index_stats"):
         s = report["index_stats"]
-        log(f"  indexaciÃƒÂ³n: {s['nodes']} nodos, {s['edges']} edges, {s['communities']} comunidades")
+        log(f"  indexación: {s['nodes']} nodos, {s['edges']} edges, {s['communities']} comunidades")
     elif report.get("index_skipped"):
-        log("  indexaciÃƒÂ³n: index.json ya existÃƒÂ­a, no se re-indexÃƒÂ³ (usÃƒÂ¡ --reindex para forzarlo)")
+        log("  indexación: index.json ya existía, no se re-indexó (usá --reindex para forzarlo)")
     gr = report.get("git_reconciled")
     if isinstance(gr, int):
         log(f"  historial git reconciliado: {gr} commits marcados origen: pre-graph")
     elif gr == "no-git-repo":
-        log("  historial git: no se encontrÃƒÂ³ .git en la raÃƒÂ­z, se omitiÃƒÂ³ la reconciliaciÃƒÂ³n")
+        log("  historial git: no se encontró .git en la raíz, se omitió la reconciliación")
     elif gr == "already":
         log("  historial git: ya estaba reconciliado (pre-graph-commits.md existente)")
     if report["docs_updated"]:
-        log(f"  documentaciÃƒÂ³n actualizada: {len(report['docs_updated'])}")
+        log(f"  documentación actualizada: {len(report['docs_updated'])}")
         for f in report["docs_updated"]:
             log(f"    ~ {f}")
         for f in report["docs_backed_up"]:
@@ -360,34 +360,34 @@ def print_summary(mode, migrate, root, report):
     log()
     log("Nota: los 3 hooks de enforcement (circuit breaker) solo se activan solos")
     log("cuando GRAPH se instala como plugin de Claude Code o Codex CLI. Corriendo")
-    log("standalone, Circuit Breaker queda declarativo ÃƒÂºnicamente Ã¢â‚¬â€ ver")
+    log("standalone, Circuit Breaker queda declarativo únicamente — ver")
     log(".agents/graph/enforcement/README.md para agregar un adaptador a tu herramienta.")
 
 
 def reindex_only(root, report):
-    """Vuelve a correr el indexador y la reconciliaciÃƒÂ³n de git aunque
-    knowledge/index.json ya exista. No toca templates ni config Ã¢â‚¬â€ solo
+    """Vuelve a correr el indexador y la reconciliación de git aunque
+    knowledge/index.json ya exista. No toca templates ni config — solo
     knowledge/ y history/."""
     if not os.path.isdir(os.path.join(root, ".agents", "graph")):
-        log("No hay .agents/graph/ en este repo Ã¢â‚¬â€ corrÃƒÂ© graph-ia.py con --mode primero.")
+        log("No hay .agents/graph/ en este repo — corré graph-ia.py con --mode primero.")
         sys.exit(1)
 
     build_graph = os.path.join(SCRIPT_DIR, "build-graph.py")
     result = subprocess.run([sys.executable, build_graph, root], capture_output=True, text=True)
     if result.returncode != 0:
-        log("El indexador (build-graph.py) fallÃƒÂ³:")
+        log("El indexador (build-graph.py) falló:")
         log(result.stderr)
         sys.exit(1)
     report["index_stats"] = json.loads(result.stdout.strip().splitlines()[-1])
     report["index_skipped"] = False
 
-    # La reconciliaciÃƒÂ³n de git usa su propio marcador de "ya hecho"
-    # (pre-graph-commits.md) Ã¢â‚¬â€ si querÃƒÂ©s forzarla de nuevo, borrÃƒÂ¡ ese
+    # La reconciliación de git usa su propio marcador de "ya hecho"
+    # (pre-graph-commits.md) — si querés forzarla de nuevo, borrá ese
     # archivo antes de correr --reindex.
     reconcile_git_history(root, report)
 
 
-# Solo documentaciÃƒÂ³n del patrÃƒÂ³n Ã¢â‚¬â€ nunca config ni datos de sesiÃƒÂ³n del usuario.
+# Solo documentación del patrón — nunca config ni datos de sesión del usuario.
 DOC_ONLY_MAP = [
     ("graph/GRAPH.md", ".agents/graph/GRAPH.md"),
     ("graph/README.md", ".agents/graph/README.md"),
@@ -398,16 +398,16 @@ DOC_ONLY_MAP = [
 
 
 def update_docs(root, report):
-    """Sobreescribe SOLO la documentaciÃƒÂ³n genÃƒÂ©rica del patrÃƒÂ³n (GRAPH.md,
-    graph/README.md, roles/*.md) con la versiÃƒÂ³n actual del plugin, y
+    """Sobreescribe SOLO la documentación genérica del patrón (GRAPH.md,
+    graph/README.md, roles/*.md) con la versión actual del plugin, y
     resincroniza el bloque administrado de AGENTS.md/CLAUDE.md (idempotente,
     preserva todo lo que el usuario haya escrito fuera del bloque). Hace un
     .bak del archivo viejo antes de tocar los docs. Deliberadamente NO toca:
     circuit-breaker.yml, gates/policy.yml, roles/registry.yml (puede tener
-    roles custom), progress.md, tasks.md Ã¢â‚¬â€ esos son estado o config del
-    proyecto, no documentaciÃƒÂ³n genÃƒÂ©rica del patrÃƒÂ³n."""
+    roles custom), progress.md, tasks.md — esos son estado o config del
+    proyecto, no documentación genérica del patrón."""
     if not os.path.isdir(os.path.join(root, ".agents", "graph")):
-        log("No hay .agents/graph/ en este repo Ã¢â‚¬â€ corrÃƒÂ© graph-ia.py con --mode primero.")
+        log("No hay .agents/graph/ en este repo — corré graph-ia.py con --mode primero.")
         sys.exit(1)
 
     for rel_src, rel_dst in DOC_ONLY_MAP:
@@ -418,7 +418,7 @@ def update_docs(root, report):
         if os.path.isfile(dst):
             with open(src, "rb") as f1, open(dst, "rb") as f2:
                 if f1.read() == f2.read():
-                    continue  # ya estÃƒÂ¡ igual, no hace falta ni backup
+                    continue  # ya está igual, no hace falta ni backup
             bak_path = dst + ".bak"
             shutil.copyfile(dst, bak_path)
             report["docs_backed_up"].append(bak_path)
@@ -431,18 +431,18 @@ def update_docs(root, report):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bootstrap standalone del patrÃƒÂ³n GRAPH (sin plugin system).")
-    parser.add_argument("repo_root", nargs="?", default=".", help="raÃƒÂ­z del proyecto donde instalar GRAPH")
+    parser = argparse.ArgumentParser(description="Bootstrap standalone del patrón GRAPH (sin plugin system).")
+    parser.add_argument("repo_root", nargs="?", default=".", help="raíz del proyecto donde instalar GRAPH")
     parser.add_argument("--mode", choices=["greenfield", "brownfield"], help="requerido salvo con --reindex/--update-docs solos")
     parser.add_argument("--migrate", action="store_true")
     parser.add_argument("--reindex", action="store_true",
-                         help="Vuelve a correr build-graph.py y reconciliar git, aunque knowledge/index.json ya exista. No toca nada mÃƒÂ¡s.")
+                         help="Vuelve a correr build-graph.py y reconciliar git, aunque knowledge/index.json ya exista. No toca nada más.")
     parser.add_argument("--update-docs", action="store_true",
-                         help="Sobreescribe GRAPH.md, graph/README.md y roles/*.md con la versiÃƒÂ³n actual del plugin "
+                         help="Sobreescribe GRAPH.md, graph/README.md y roles/*.md con la versión actual del plugin "
                               "(hace .bak del archivo viejo antes), y resincroniza el bloque administrado de "
-                              "AGENTS.md/CLAUDE.md de forma idempotente (reemplaza solo lo que estÃƒÂ¡ entre "
+                              "AGENTS.md/CLAUDE.md de forma idempotente (reemplaza solo lo que está entre "
                               "los marcadores graph-ia:bridge-block, preserva el resto del archivo tal cual). "
-                              "NUNCA toca circuit-breaker.yml, gates/policy.yml, progress.md ni tasks.md Ã¢â‚¬â€ esos son tuyos.")
+                              "NUNCA toca circuit-breaker.yml, gates/policy.yml, progress.md ni tasks.md — esos son tuyos.")
     args = parser.parse_args()
 
     root = os.path.abspath(args.repo_root)
@@ -475,7 +475,7 @@ def main():
         return
 
     if not args.mode:
-        log("Falta --mode=greenfield o --mode=brownfield (o usÃƒÂ¡ --reindex / --update-docs solo).")
+        log("Falta --mode=greenfield o --mode=brownfield (o usá --reindex / --update-docs solo).")
         sys.exit(1)
 
     if args.migrate:
