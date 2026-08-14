@@ -1,7 +1,7 @@
 # Enforcement — por qué esta carpeta existe
 
 > **Nota (instalación vía plugin):** si GRAPH se instaló con el plugin
-> `template-ia` de Claude Code, los tres hooks de abajo se registran solos al
+> `graph-ia` de Claude Code, los tres hooks de abajo se registran solos al
 > instalar el plugin — no hace falta tocar `.claude/settings.json` a mano ni
 > copiar los `.sh` acá. Las instrucciones de registro manual que siguen
 > abajo quedan como referencia para integrar el mismo contrato con otra

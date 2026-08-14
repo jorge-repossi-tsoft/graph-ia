@@ -1,4 +1,4 @@
-# template-ia — instalación
+# graph-ia — instalación
 
 Plugin que instala el patrón **GRAPH** en cualquier proyecto. Este
 documento es solo sobre cómo instalarlo: la explicación de qué es GRAPH
@@ -11,11 +11,11 @@ instalarlo: elegí la que corresponda a lo que usás.
 ## Opción 1 — Universal (funciona con cualquier LLM/agente, sin plugin system)
 
 ```bash
-git clone https://gitlab-ee.agil.movistar.com.ar/cloudersdesarrollos/investigacion/ia/template-ia.git /tmp/template-ia
+git clone https://github.com/jorge-repossi-tsoft/graph-ia.git /tmp/graph-ia
 cd /tu/proyecto
-python3 /tmp/template-ia/scripts/template-ia.py . --mode=greenfield
+python3 /tmp/graph-ia/scripts/graph-ia.py . --mode=greenfield
 # o, si el proyecto ya tiene código:
-python3 /tmp/template-ia/scripts/template-ia.py . --mode=brownfield --migrate
+python3 /tmp/graph-ia/scripts/graph-ia.py . --mode=brownfield --migrate
 ```
 
 Esto arma toda la estructura `.agents/` y el bridge `AGENTS.md`/`CLAUDE.md`
@@ -36,13 +36,13 @@ Requisitos: Claude Code (o Antigravity) instalado, Python 3.
 ### 1. Agregar el marketplace
 
 ```
-/plugin marketplace add cloudersdesarrollos/template-ia
+/plugin marketplace add cloudersdesarrollos/graph-ia
 ```
 
 ### 2. Instalar el plugin
 
 ```
-/plugin install template-ia@template-ia
+/plugin install graph-ia@graph-ia
 ```
 
 ### 3. Recargar
@@ -56,8 +56,8 @@ disponible en tu versión)
 
 ### 4. Confirmar que quedó instalado
 
-Escribí `/template-ia:` en el chat: te tiene que aparecer
-`/template-ia:template-ia` en la lista de comandos disponibles. Si no
+Escribí `/graph-ia:` en el chat: te tiene que aparecer
+`/graph-ia:graph-ia` en la lista de comandos disponibles. Si no
 aparece, el reload no tomó el plugin. Repetí el paso 3.
 
 ### 5. Correrlo en tu proyecto
@@ -65,13 +65,13 @@ aparece, el reload no tomó el plugin. Repetí el paso 3.
 Parado en la raíz de tu proyecto (donde está tu `.git`):
 
 ```
-/template-ia:template-ia --mode=greenfield
+/graph-ia:graph-ia --mode=greenfield
 ```
 
 o, si el proyecto ya tiene código o historia:
 
 ```
-/template-ia:template-ia --mode=brownfield --migrate
+/graph-ia:graph-ia --mode=brownfield --migrate
 ```
 
 ## Opción 3 — Plugin de Codex CLI (agrega enforcement real del circuit breaker en Codex)
@@ -91,13 +91,13 @@ es un proyecto viejo sin relación con OpenAI)
 ### 1. Agregar el marketplace
 
 ```bash
-codex plugin marketplace add cloudersdesarrollos/template-ia
+codex plugin marketplace add cloudersdesarrollos/graph-ia
 ```
 
 ### 2. Instalar el plugin
 
 ```bash
-codex plugin add template-ia@template-ia
+codex plugin add graph-ia@graph-ia
 ```
 
 ### 3. Iniciar una sesión nueva
@@ -107,13 +107,13 @@ sesión nueva de Codex. Cerrá la actual si estaba abierta.
 
 ### 4. Correrlo en tu proyecto
 
-Codex no tiene comandos slash tipo `/template-ia:template-ia`: la lógica
+Codex no tiene comandos slash tipo `/graph-ia:graph-ia`: la lógica
 quedó empaquetada como una skill. Parado en la raíz de tu proyecto,
 pedíselo en lenguaje natural:
 
 > "Instalá el patrón GRAPH acá, en modo brownfield, con migrate"
 
-Codex debería reconocer y usar la skill `template-ia` sola.
+Codex debería reconocer y usar la skill `graph-ia` sola.
 
 **Comandos confirmados contra Codex CLI 0.142.0** (con `codex plugin
 marketplace add --help` / `codex plugin add --help`). Si tu versión da
@@ -134,10 +134,10 @@ Los wrappers viven en `bin/` del checkout del plugin:
 - `bin/graph.ps1` + `bin/graph.cmd` (Windows)
 - `bin/graph` (Linux/macOS)
 
-Buscan `template-ia.py` en este orden:
+Buscan `graph-ia.py` en este orden:
 
-1. `TEMPLATE_IA_SCRIPT`
-2. `TEMPLATE_IA_ROOT\scripts\template-ia.py`
+1. `GRAPH_IA_SCRIPT`
+2. `GRAPH_IA_ROOT\scripts\graph-ia.py`
 3. el checkout local del repo del plugin
 4. la instalación activa de Codex vía `codex plugin list`
 
@@ -150,7 +150,7 @@ graph --mode=greenfield
 graph --mode=brownfield --migrate
 ```
 
-Si no encuentra `template-ia.py`, falla con un mensaje claro para que puedas
+Si no encuentra `graph-ia.py`, falla con un mensaje claro para que puedas
 instalar el plugin o apuntar el checkout correcto sin tocar rutas fijas.
 
 ## Qué hace, en una línea
@@ -180,10 +180,10 @@ For a clean publish bundle, run:
 python3 scripts/build-release.py
 ```
 
-This generates `dist/template-ia-release/` and `dist/template-ia-release.zip`
+This generates `dist/graph-ia-release/` and `dist/graph-ia-release.zip`
 with source files only. It excludes `.agents/`, caches, temp folders, and
 local test artifacts.
 
-The release script also supports `--versioned`, which emits a sibling bundle named with the plugin version (for example `template-ia-release-v3.1.0`) and validates that both plugin manifests share the same semver first.
+The release script also supports `--versioned`, which emits a sibling bundle named with the plugin version (for example `graph-ia-release-v3.1.0`) and validates that both plugin manifests share the same semver first.
 
 For the release and publishing checklist, see [RELEASE.md](./RELEASE.md).

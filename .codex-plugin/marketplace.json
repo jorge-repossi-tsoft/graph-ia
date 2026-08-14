@@ -1,11 +1,11 @@
 {
-  "name": "template-ia",
+  "name": "graph-ia",
   "interface": {
     "displayName": "GRAPH — agentic architecture pattern"
   },
   "plugins": [
     {
-      "name": "template-ia",
+      "name": "graph-ia",
       "source": {
         "source": "local",
         "path": "./"

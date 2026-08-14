@@ -11,3 +11,9 @@ __pycache__/
 .tmp/
 tmp*/
 *.bak
+
+# Legacy CI config kept out for now
+.gitlab-ci.yml
+
+# Test release zips generated on the fly
+tests/_tmp_release_*.zip

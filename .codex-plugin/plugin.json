@@ -1,12 +1,12 @@
 {
-  "name": "template-ia",
+  "name": "graph-ia",
   "version": "3.1.0",
   "description": "GRAPH pattern bootstrapper: sets up a versioned, hierarchical knowledge graph with human-review gates and autonomous-loop circuit breakers for any AI coding agent project. Stack-agnostic, greenfield or brownfield (--migrate). Ships its own built-in code indexer — no third-party tool required.",
   "author": {
     "name": "jorge-repossi-tsoft"
   },
-  "homepage": "https://github.com/jorge-repossi-tsoft/template-ia",
-  "repository": "https://github.com/jorge-repossi-tsoft/template-ia",
+  "homepage": "https://github.com/jorge-repossi-tsoft/graph-ia",
+  "repository": "https://github.com/jorge-repossi-tsoft/graph-ia",
   "license": "MIT",
   "keywords": ["graph", "agentic-architecture", "knowledge-graph", "circuit-breaker", "human-review", "design-pattern"],
   "skills": "./skills/",

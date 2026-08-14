@@ -1,13 +1,13 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
-  Wrapper corto para scripts/template-ia.py (Windows).
+  Wrapper corto para scripts/graph-ia.py (Windows).
 
 .DESCRIPTION
-  Resuelve template-ia.py en este orden:
-    1. $env:TEMPLATE_IA_SCRIPT (ruta directa al script)
-    2. $env:TEMPLATE_IA_ROOT\scripts\template-ia.py
-    3. ..\scripts\template-ia.py relativo a este wrapper (checkout local)
+  Resuelve graph-ia.py en este orden:
+    1. $env:GRAPH_IA_SCRIPT (ruta directa al script)
+    2. $env:GRAPH_IA_ROOT\scripts\graph-ia.py
+    3. ..\scripts\graph-ia.py relativo a este wrapper (checkout local)
     4. la instalación de marketplace activa de Codex ('codex plugin list')
   y lo ejecuta con el primer intérprete de Python disponible (py -3,
   python, python3), pasando el directorio actual como repo_root.
@@ -27,16 +27,16 @@ $ErrorActionPreference = 'Stop'
 function Resolve-TemplateIaScript {
   $candidates = New-Object System.Collections.Generic.List[string]
 
-  if ($env:TEMPLATE_IA_SCRIPT) {
-    $candidates.Add($env:TEMPLATE_IA_SCRIPT)
+  if ($env:GRAPH_IA_SCRIPT) {
+    $candidates.Add($env:GRAPH_IA_SCRIPT)
   }
 
-  if ($env:TEMPLATE_IA_ROOT) {
-    $candidates.Add((Join-Path $env:TEMPLATE_IA_ROOT 'scripts\template-ia.py'))
+  if ($env:GRAPH_IA_ROOT) {
+    $candidates.Add((Join-Path $env:GRAPH_IA_ROOT 'scripts\graph-ia.py'))
   }
 
-  # Checkout local del repo del plugin: bin\graph.ps1 -> ..\scripts\template-ia.py
-  $candidates.Add((Join-Path $PSScriptRoot '..\scripts\template-ia.py'))
+  # Checkout local del repo del plugin: bin\graph.ps1 -> ..\scripts\graph-ia.py
+  $candidates.Add((Join-Path $PSScriptRoot '..\scripts\graph-ia.py'))
 
   # Instalación de marketplace de Codex
   if (Get-Command codex -ErrorAction SilentlyContinue) {
@@ -45,7 +45,7 @@ function Resolve-TemplateIaScript {
       $inTemplateIa = $false
 
       foreach ($line in $output) {
-        if ($line -match '^\s*Marketplace\s+`?template-ia`?\s*$') {
+        if ($line -match '^\s*Marketplace\s+`?graph-ia`?\s*$') {
           $inTemplateIa = $true
           continue
         }
@@ -53,7 +53,7 @@ function Resolve-TemplateIaScript {
         if ($inTemplateIa -and $line -match '^(?<path>[A-Za-z]:\\.*)$') {
           $marketplaceRoot = $Matches.path.Trim()
           if ($marketplaceRoot) {
-            $candidates.Add((Join-Path $marketplaceRoot 'scripts\template-ia.py'))
+            $candidates.Add((Join-Path $marketplaceRoot 'scripts\graph-ia.py'))
           }
           break
         }
@@ -76,15 +76,15 @@ function Resolve-TemplateIaScript {
   }
 
   throw @"
-No encontré template-ia.py.
+No encontré graph-ia.py.
 
 Probé estas opciones:
-- TEMPLATE_IA_SCRIPT
-- TEMPLATE_IA_ROOT\scripts\template-ia.py
-- ..\scripts\template-ia.py relativo a este wrapper
+- GRAPH_IA_SCRIPT
+- GRAPH_IA_ROOT\scripts\graph-ia.py
+- ..\scripts\graph-ia.py relativo a este wrapper
 - la instalación de Codex vía 'codex plugin list'
 
-Instalá el plugin o definí TEMPLATE_IA_ROOT/TEMPLATE_IA_SCRIPT.
+Instalá el plugin o definí GRAPH_IA_ROOT/GRAPH_IA_SCRIPT.
 "@
 }
 

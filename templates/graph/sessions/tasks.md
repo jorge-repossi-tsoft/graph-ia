@@ -8,7 +8,7 @@
 > Cada tarea completada debe dejar rastro en `graph/sessions/progress.md` y/o
 > en `graph/history/`, no alcanza con tildarla solo aquí.
 
-## Instalación del patrón (marcar al hacer template-ia)
+## Instalación del patrón (marcar al hacer graph-ia)
 - [ ] Modo detectado: greenfield | brownfield
 - [ ] Árbol de carpetas creado
 - [ ] (brownfield only) Indexación inicial completa — bloqueante, ningún agente opera antes de esto

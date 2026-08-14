@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-template-ia.py — bootstrapper standalone del patrón GRAPH.
+graph-ia.py — bootstrapper standalone del patrón GRAPH.
 
-Reimplementación determinística de commands/template-ia.md (el comando que
+Reimplementación determinística de commands/graph-ia.md (el comando que
 usa el plugin de Claude Code), pero sin depender de ningún sistema de
 plugins ni de que un agente de IA interprete instrucciones. Pensado para
 herramientas sin plugin marketplace propio (Codex, Cursor, o directamente
 sin ningún agente) — solo necesita Python 3, igual que build-graph.py.
 
 Uso:
-  python3 template-ia.py [repo_root] --mode=greenfield|brownfield [--migrate]
+  python3 graph-ia.py [repo_root] --mode=greenfield|brownfield [--migrate]
 
 repo_root por defecto es el directorio actual. Mismo contrato que la
 versión de plugin:
@@ -34,9 +34,9 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 TEMPLATES_DIR = os.path.join(SCRIPT_DIR, "..", "templates")
-BRIDGE_MARKER = "<!-- template-ia:bridge-block -->"
-BRIDGE_END_MARKER = "<!-- /template-ia:bridge-block -->"
-LEGACY_LINE_PLACEHOLDER = "<!-- template-ia:legacy-line -->"
+BRIDGE_MARKER = "<!-- graph-ia:bridge-block -->"
+BRIDGE_END_MARKER = "<!-- /graph-ia:bridge-block -->"
+LEGACY_LINE_PLACEHOLDER = "<!-- graph-ia:legacy-line -->"
 LEGACY_LINE_TEXT = "- `.agents/graph/legacy-system.md` — sistema anterior migrado, consultalo también."
 
 COPY_MAP = [
@@ -313,7 +313,7 @@ def stamp_mode(root, mode, report):
 
 def print_summary(mode, migrate, root, report):
     log()
-    log(f"=== template-ia standalone — {root} — modo {mode} ===")
+    log(f"=== graph-ia standalone — {root} — modo {mode} ===")
     if migrate:
         for old, new in report["migrated"]:
             log(f"  migrado: {old} -> {new}")
@@ -369,7 +369,7 @@ def reindex_only(root, report):
     knowledge/index.json ya exista. No toca templates ni config — solo
     knowledge/ y history/."""
     if not os.path.isdir(os.path.join(root, ".agents", "graph")):
-        log("No hay .agents/graph/ en este repo — corré template-ia.py con --mode primero.")
+        log("No hay .agents/graph/ en este repo — corré graph-ia.py con --mode primero.")
         sys.exit(1)
 
     build_graph = os.path.join(SCRIPT_DIR, "build-graph.py")
@@ -407,7 +407,7 @@ def update_docs(root, report):
     roles custom), progress.md, tasks.md — esos son estado o config del
     proyecto, no documentación genérica del patrón."""
     if not os.path.isdir(os.path.join(root, ".agents", "graph")):
-        log("No hay .agents/graph/ en este repo — corré template-ia.py con --mode primero.")
+        log("No hay .agents/graph/ en este repo — corré graph-ia.py con --mode primero.")
         sys.exit(1)
 
     for rel_src, rel_dst in DOC_ONLY_MAP:
@@ -441,7 +441,7 @@ def main():
                          help="Sobreescribe GRAPH.md, graph/README.md y roles/*.md con la versión actual del plugin "
                               "(hace .bak del archivo viejo antes), y resincroniza el bloque administrado de "
                               "AGENTS.md/CLAUDE.md de forma idempotente (reemplaza solo lo que está entre "
-                              "los marcadores template-ia:bridge-block, preserva el resto del archivo tal cual). "
+                              "los marcadores graph-ia:bridge-block, preserva el resto del archivo tal cual). "
                               "NUNCA toca circuit-breaker.yml, gates/policy.yml, progress.md ni tasks.md — esos son tuyos.")
     args = parser.parse_args()
 

@@ -1,6 +1,6 @@
 ---
 name: graph
-description: Use this skill when the user is designing, auditing, or discussing an agentic architecture pattern for AI coding agents — questions about how autonomous agents should ground their actions in project knowledge, where human review gates belong, how to keep context portable across tools (Claude Code, Cursor, Copilot, Antigravity), how to persist context across sessions, or how to structure a knowledge graph hierarchically. Also use when the user runs /template-ia, mentions "GRAPH pattern", "circuit breaker" for agent loops, or asks to audit whether a project complies with GRAPH.
+description: Use this skill when the user is designing, auditing, or discussing an agentic architecture pattern for AI coding agents — questions about how autonomous agents should ground their actions in project knowledge, where human review gates belong, how to keep context portable across tools (Claude Code, Cursor, Copilot, Antigravity), how to persist context across sessions, or how to structure a knowledge graph hierarchically. Also use when the user runs /graph-ia, mentions "GRAPH pattern", "circuit breaker" for agent loops, or asks to audit whether a project complies with GRAPH.
 ---
 
 # GRAPH
@@ -99,4 +99,4 @@ Una respuesta "no" no es fracaso — es una señal concreta de qué falta implem
 
 ## Modo de instalación
 
-Este documento asume que el árbol de `graph/` ya fue generado por `template-ia`. Ver `sessions/tasks.md` para el estado de instalación de este proyecto puntual (greenfield o brownfield, con o sin reconciliación de historial).
+Este documento asume que el árbol de `graph/` ya fue generado por `graph-ia`. Ver `sessions/tasks.md` para el estado de instalación de este proyecto puntual (greenfield o brownfield, con o sin reconciliación de historial).

@@ -25,14 +25,14 @@ REPO_ROOT="$(pwd)"
 MODE=""
 MIGRATE=false
 UPDATE=false
-ALLOW_SELF_INSTALL="${TEMPLATE_IA_ALLOW_SELF_INSTALL:-0}"
+ALLOW_SELF_INSTALL="${GRAPH_IA_ALLOW_SELF_INSTALL:-0}"
 
 SCRIPT_DIR_REAL="$(cd "$SCRIPT_DIR" && pwd -P)"
 REPO_ROOT_REAL="$(cd "$REPO_ROOT" && pwd -P)"
 
 if [ "$ALLOW_SELF_INSTALL" != "1" ] && [ "$SCRIPT_DIR_REAL" = "$REPO_ROOT_REAL" ]; then
   echo "Este instalador no debe correrse sobre el repo fuente del plugin." >&2
-  echo "Parate en el proyecto destino y volvelo a ejecutar ahí, o exportá TEMPLATE_IA_ALLOW_SELF_INSTALL=1 si realmente querés probar el self-install." >&2
+  echo "Parate en el proyecto destino y volvelo a ejecutar ahí, o exportá GRAPH_IA_ALLOW_SELF_INSTALL=1 si realmente querés probar el self-install." >&2
   exit 1
 fi
 
@@ -53,7 +53,7 @@ done
 # --update corre solo, sobre un proyecto que ya tiene GRAPH instalado: no
 # toca la instalación, solo resincroniza la documentación genérica del
 # patrón y el bloque administrado de AGENTS.md/CLAUDE.md con la versión
-# actual de este plugin (delegado a template-ia.py, que es la única fuente
+# actual de este plugin (delegado a graph-ia.py, que es la única fuente
 # de verdad de esa lógica — así no hay dos implementaciones divergiendo).
 if [ "$UPDATE" = true ]; then
   if [ -n "$MODE" ]; then
@@ -65,12 +65,12 @@ if [ "$UPDATE" = true ]; then
     exit 1
   fi
   if ! command -v python3 >/dev/null 2>&1; then
-    echo "No hay python3 disponible — --update depende de scripts/template-ia.py para" >&2
+    echo "No hay python3 disponible — --update depende de scripts/graph-ia.py para" >&2
     echo "resincronizar AGENTS.md/CLAUDE.md y la documentación del patrón sin duplicar" >&2
     echo "ni pisar contenido propio. Instalá Python 3 y volvé a correr install.sh --update." >&2
     exit 1
   fi
-  python3 "$SCRIPT_DIR/scripts/template-ia.py" "$REPO_ROOT" --update-docs
+  python3 "$SCRIPT_DIR/scripts/graph-ia.py" "$REPO_ROOT" --update-docs
   exit $?
 fi
 
@@ -185,15 +185,15 @@ fi
 echo "-- Paso 4: bridge AGENTS.md / CLAUDE.md --"
 # La lógica real (bloque administrado con marcador de inicio y cierre,
 # reemplazo idempotente, prefijo .agents/ según dónde viva el archivo) vive
-# en una sola fuente de verdad: scripts/template-ia.py. Delegamos ahí en vez
+# en una sola fuente de verdad: scripts/graph-ia.py. Delegamos ahí en vez
 # de reimplementar el mismo bloque en bash, para que no puedan desincronizarse
 # dos versiones del texto del bridge.
 if command -v python3 >/dev/null 2>&1; then
-  python3 "$SCRIPT_DIR/scripts/template-ia.py" "$REPO_ROOT" --update-docs
+  python3 "$SCRIPT_DIR/scripts/graph-ia.py" "$REPO_ROOT" --update-docs
 else
   echo "  [WARN] no hay python3 — usando un bridge mínimo degradado (sin los"
   echo "         comandos #task/#run/#done/#skip/#note documentados)."
-  echo "         Instalá Python 3 y corré: python3 scripts/template-ia.py . --update-docs"
+  echo "         Instalá Python 3 y corré: python3 scripts/graph-ia.py . --update-docs"
   echo "         para completarlo con el bridge real del plugin."
   place_bridge() {
     local filename="$1"
@@ -208,12 +208,12 @@ else
     fi
 
     if [ -n "$target" ]; then
-      if grep -q "template-ia:bridge-block" "$target" 2>/dev/null; then
+      if grep -q "graph-ia:bridge-block" "$target" 2>/dev/null; then
         echo "  [skip] $target ya tiene el bridge block"
       else
         {
           echo ""
-          echo "<!-- template-ia:bridge-block -->"
+          echo "<!-- graph-ia:bridge-block -->"
           echo "## GRAPH"
           echo "Este proyecto usa el patrón GRAPH. Antes de actuar de forma autónoma,"
           echo "consultá:"
@@ -224,7 +224,7 @@ else
           if [ -f ".agents/graph/legacy-system.md" ]; then
             echo "- \`.agents/graph/legacy-system.md\` (doc previa migrada, referencia)"
           fi
-          echo "<!-- /template-ia:bridge-block -->"
+          echo "<!-- /graph-ia:bridge-block -->"
         } >> "$target"
         echo "  [ok]   bridge agregado a $target (contenido existente intacto)"
       fi
@@ -234,7 +234,7 @@ else
       # legacy-system.md (eso requiere el script) — lo sacamos siempre para
       # no dejar el comentario crudo en el archivo.
       if [ -f "./$filename" ]; then
-        grep -v "template-ia:legacy-line" "./$filename" > "./$filename.tmp" && mv "./$filename.tmp" "./$filename"
+        grep -v "graph-ia:legacy-line" "./$filename" > "./$filename.tmp" && mv "./$filename.tmp" "./$filename"
       fi
     fi
   }
