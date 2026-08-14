@@ -17,12 +17,12 @@ and `--update-docs` (boolean, absent by default).
   guess. Follow Steps 0 through 6 below. If `--reindex` and/or
   `--update-docs` were also passed, run them as extra steps at the end
   (Step 7 / Step 8), even though Step 2 already indexes on a fresh
-  brownfield install — `--reindex` forces it again even if
+  brownfield install â€” `--reindex` forces it again even if
   `knowledge/index.json` already existed and Step 2 would otherwise have
   skipped it.
 - **`--reindex` and/or `--update-docs` passed WITHOUT `--mode`:** this
   means the user already has GRAPH installed in this project and just
-  wants to refresh something. Skip straight to Step 7 / Step 8 — don't run
+  wants to refresh something. Skip straight to Step 7 / Step 8 â€” don't run
   Steps 0-6, don't ask for `--mode`. If `.agents/graph/` doesn't exist yet
   in this case, stop and tell the user to run a full install first (with
   `--mode=`).
@@ -31,7 +31,7 @@ and `--update-docs` (boolean, absent by default).
 
 Every step below follows the same discipline as the original script's
 `safe_copy` function: if a destination file already exists, **skip it and
-say so** — never overwrite silently. `mkdir -p` semantics are fine (creating
+say so** â€” never overwrite silently. `mkdir -p` semantics are fine (creating
 missing subfolders is always safe), but file contents are never replaced.
 
 ## Steps
@@ -39,22 +39,22 @@ missing subfolders is always safe), but file contents are never replaced.
 ### 0. Optional migration (only if --migrate was passed)
 
 Check `.agents/` root (not `.agents/graph/`) for these three files, and for
-each one found, **move** (not copy-and-leave-orphan) it into its GRAPH
+each one found, **copy** it into its GRAPH
 location, prepending a provenance note:
 
-- `.agents/progress.md` → `.agents/graph/sessions/progress.md`
-- `.agents/tasks.md` → `.agents/graph/sessions/tasks.md`
-- `.agents/system.md` → `.agents/graph/legacy-system.md`
+- `.agents/progress.md` â†’ `.agents/graph/sessions/progress.md`
+- `.agents/tasks.md` â†’ `.agents/graph/sessions/tasks.md`
+- `.agents/system.md` â†’ `.agents/graph/legacy-system.md`
 
-For each move: prepend `<!-- Migrado automáticamente desde <old path> el
+For each migration: prepend `<!-- Migrado automáticamente desde <old path> el
 <today's date> -->` plus a blank line before the original content, write to
-the new path, then remove the old file. If the destination already exists,
+the new path, and keep the original file untouched. If the destination already exists,
 skip the migration for that file and tell the user both files were left
 untouched (don't guess which one is authoritative).
 
-`README.md` is never migrated — it's human documentation, not agent config.
+`README.md` is never migrated â€” it's human documentation, not agent config.
 
-### 1. Create the folder tree (safe even if `.agents/` already exists —
+### 1. Create the folder tree (safe even if `.agents/` already exists â€”
    this only adds missing subfolders, never touches existing ones)
 
 ```
@@ -72,21 +72,21 @@ untouched (don't guess which one is authoritative).
 ### 2. Initialize `knowledge/index.json` (skip if it already exists)
 
 - **greenfield:** write
-  `{"status": "empty", "reason": "greenfield — se puebla en paralelo al código", "last_indexed": null}`
-- **brownfield:** this step is **blocking** — no agent (including you, right
+  `{"status": "empty", "reason": "greenfield â€” se puebla en paralelo al cÃ³digo", "last_indexed": null}`
+- **brownfield:** this step is **blocking** â€” no agent (including you, right
   now) proceeds to autonomous work until it resolves:
-  1. Write `{"status": "indexing", "reason": "brownfield — indexación inicial en curso", "last_indexed": null}`.
-  2. Run the plugin's own built-in indexer — it reads the actual repo with
+  1. Write `{"status": "indexing", "reason": "brownfield â€” indexaciÃ³n inicial en curso", "last_indexed": null}`.
+  2. Run the plugin's own built-in indexer â€” it reads the actual repo with
      no external dependency and no third-party tool:
      `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/build-graph.py <repo_root>`.
      This populates `knowledge/nodes/*.json` (one file per source file,
      with real `references`/`referenced_by` resolved from actual
      imports/requires), `knowledge/communities/*.json` (grouped by
      top-level folder), and overwrites `knowledge/index.json` with real
-     counts. Report those exact counts to the user — never invent numbers,
+     counts. Report those exact counts to the user â€” never invent numbers,
      and never substitute a different tool's output here. GRAPH stays
      agnostic precisely because this indexer ships with the plugin itself
-     and requires nothing beyond Python's standard library — it must not
+     and requires nothing beyond Python's standard library â€” it must not
      be replaced by an external indexer as the default path.
   3. Reconcile git history: run `git log` and mark reconciled commits with
      `origen: pre-graph` in `.agents/graph/history/`. If `.agents/graph/history/.git-log-import-pending`
@@ -94,25 +94,25 @@ untouched (don't guess which one is authoritative).
      marker, then perform the reconciliation, then remove the marker once
      done.
   4. Gates stay effectively unusable for autonomous work until both 2 and 3
-     above are actually complete — don't tell the user gates are "enabled"
+     above are actually complete â€” don't tell the user gates are "enabled"
      while indexing is still pending.
 
 ### 3. Copy base files (skip any that already exist, per the no-overwrite rule)
 
 From `${CLAUDE_PLUGIN_ROOT}/templates/`:
-- `graph/GRAPH.md` → `.agents/graph/GRAPH.md`
-- `graph/circuit-breaker.yml` → `.agents/graph/circuit-breaker.yml`
-- `graph/gates/policy.yml` → `.agents/graph/gates/policy.yml`
-- `roles/registry.yml`, `roles/planner.md`, `roles/executor.md`, `roles/reviewer.md` → `.agents/roles/`
-- `graph/sessions/progress.md`, `graph/sessions/tasks.md` → `.agents/graph/sessions/` (skip if `--migrate` already placed files there)
-- `graph/enforcement/README.md` → `.agents/graph/enforcement/README.md`
+- `graph/GRAPH.md` â†’ `.agents/graph/GRAPH.md`
+- `graph/circuit-breaker.yml` â†’ `.agents/graph/circuit-breaker.yml`
+- `graph/gates/policy.yml` â†’ `.agents/graph/gates/policy.yml`
+- `roles/registry.yml`, `roles/planner.md`, `roles/executor.md`, `roles/reviewer.md` â†’ `.agents/roles/`
+- `graph/sessions/progress.md`, `graph/sessions/tasks.md` â†’ `.agents/graph/sessions/` (skip if `--migrate` already placed files there)
+- `graph/enforcement/README.md` â†’ `.agents/graph/enforcement/README.md`
 
 Note: the three enforcement hook scripts (`claude-code-hook.sh`,
 `session-reset-hook.sh`, `stagnation-hook.sh`) do **not** need to be copied
-into the project — they run directly from the plugin
+into the project â€” they run directly from the plugin
 (`${CLAUDE_PLUGIN_ROOT}/hooks/`) and auto-register via the plugin's
 `hooks.json`. Mention this to the user so they don't go looking for those
-files inside `.agents/graph/enforcement/` — only `README.md` lives there,
+files inside `.agents/graph/enforcement/` â€” only `README.md` lives there,
 as documentation of what's enforcing what.
 
 ### 4. Place the AGENTS.md / CLAUDE.md bridge
@@ -126,9 +126,9 @@ without touching anything else in the file:
 1. Look for `AGENTS.md` first at repo root, then at `.agents/AGENTS.md`.
 2. If found at either location:
    - No start marker present: **append** (never rewrite existing content) a
-     managed block — start marker, body pointing to `graph/GRAPH.md`,
+     managed block â€” start marker, body pointing to `graph/GRAPH.md`,
      `roles/registry.yml`, `graph/gates/policy.yml`,
-     `graph/sessions/progress.md`/`tasks.md`, end marker — using the
+     `graph/sessions/progress.md`/`tasks.md`, end marker â€” using the
      `.agents/` prefix only if the file lives at repo root, no prefix if
      it's already inside `.agents/`. If `.agents/graph/legacy-system.md`
      exists (from step 0), add a line pointing to it too.
@@ -136,17 +136,17 @@ without touching anything else in the file:
      pre-existing install with no end marker yet, from the start marker to
      end of file) differs from the current plugin's block: this file is
      **stale**. Leave it untouched on a plain install/mode run and report
-     it as stale — don't silently rewrite it here. It only gets
+     it as stale â€” don't silently rewrite it here. It only gets
      resynchronized by Step 8 (`--update-docs`), which replaces exactly the
-     managed block in place and leaves everything outside it — including
-     content the user added after the block — untouched.
+     managed block in place and leaves everything outside it â€” including
+     content the user added after the block â€” untouched.
    - Block already matches the current plugin version: skip, nothing to do.
 3. If not found anywhere: copy `${CLAUDE_PLUGIN_ROOT}/templates/AGENTS.md`
-   to the repo root (not into `.agents/`) — that's where tools discover it.
+   to the repo root (not into `.agents/`) â€” that's where tools discover it.
    That template file already contains the managed block, start and end
-   marker included — don't append anything extra to it, or the block will
+   marker included â€” don't append anything extra to it, or the block will
    be duplicated.
-4. Repeat steps 1–3 identically for `CLAUDE.md`.
+4. Repeat steps 1â€“3 identically for `CLAUDE.md`.
 
 ### 5. Stamp the detected mode into tasks.md
 
@@ -158,49 +158,49 @@ detectado: <actual mode>`. If it came from migration, don't touch it.
 ### 6. Report a summary
 
 - What was created vs. skipped (and why, if `--migrate` was used).
-- Confirm the 3 enforcement hooks are active via plugin registration —
+- Confirm the 3 enforcement hooks are active via plugin registration â€”
   `claude-code-hook.sh` (PreToolUse), `session-reset-hook.sh`
   (UserPromptSubmit), `stagnation-hook.sh` (PostToolUse).
 - Remind the user `circuit-breaker.yml` and `gates/policy.yml` are both
-  protected — editing either requires an approval file in
+  protected â€” editing either requires an approval file in
   `.agents/graph/gates/approved/` matching the `config-edit` pattern the
   hooks check for (see `enforcement/README.md`), not just editing the YAML
   directly.
 - If mode was `brownfield`, report the real node/edge/community counts the
   built-in indexer produced. Mention that the regex-based import detection
-  is a heuristic, not full AST parsing — some references (dynamic imports,
+  is a heuristic, not full AST parsing â€” some references (dynamic imports,
   unusual syntax, non-relative aliases) may not resolve, and that's a known
   limitation to note in `sessions/progress.md`, not something to hide.
 
 ### 7. `--reindex` (runs if this flag was passed, standalone or combined with a fresh install)
 
 Re-run the built-in indexer even if `knowledge/index.json` already exists
-— useful when the project had no code yet at install time (greenfield) and
+â€” useful when the project had no code yet at install time (greenfield) and
 real code got added afterward, or when the codebase changed enough that
 the existing index is stale:
 
 `python3 ${CLAUDE_PLUGIN_ROOT}/scripts/build-graph.py <repo_root>`
 
 This always overwrites `knowledge/nodes/`, `knowledge/communities/`, and
-`knowledge/index.json` — there's nothing to preserve there, it's derived
+`knowledge/index.json` â€” there's nothing to preserve there, it's derived
 data, not something the user hand-edits. Report the new real counts.
 Also re-run git history reconciliation (same as Step 2.3) unless
 `.agents/graph/history/pre-graph-commits.md` already exists (that marker
-means it was already done — `--reindex` only forces the *code* index, not
+means it was already done â€” `--reindex` only forces the *code* index, not
 git history, to avoid duplicating entries).
 
 ### 8. `--update-docs` (runs if this flag was passed, standalone or combined with a fresh install)
 
 Refreshes ONLY the generic pattern documentation to the version that ships
-with this plugin — never config, never user data:
+with this plugin â€” never config, never user data:
 
-- `templates/graph/GRAPH.md` → `.agents/graph/GRAPH.md`
-- `templates/graph/README.md` → `.agents/graph/README.md`
-- `templates/roles/planner.md`, `executor.md`, `reviewer.md` → `.agents/roles/`
+- `templates/graph/GRAPH.md` â†’ `.agents/graph/GRAPH.md`
+- `templates/graph/README.md` â†’ `.agents/graph/README.md`
+- `templates/roles/planner.md`, `executor.md`, `reviewer.md` â†’ `.agents/roles/`
 
 For each: if the destination file's content differs from the template,
 copy the destination to `<file>.bak` first (so nothing is silently lost),
-then overwrite it. If content is already identical, skip silently — no
+then overwrite it. If content is already identical, skip silently â€” no
 need for a backup of something that wasn't going to change.
 
 This is also the entry point that resynchronizes the AGENTS.md/CLAUDE.md
@@ -208,7 +208,7 @@ managed block from Step 4: find the content between
 `<!-- graph-ia:bridge-block -->` and `<!-- /graph-ia:bridge-block -->`
 (or, for a file bridged before the end marker existed, from the start
 marker to end of file) and replace exactly that span with the current
-plugin's block — nothing before it, nothing the user added after it, gets
+plugin's block â€” nothing before it, nothing the user added after it, gets
 touched. If the block already matches, skip silently, same as the docs
 above; this makes `--update-docs` safe to run repeatedly (idempotent, no
 duplicated blocks, no `.bak` needed for this part since the block is
@@ -218,11 +218,11 @@ plugin-owned, not user-owned).
 `roles/registry.yml` (may have project-specific role tweaks),
 `sessions/progress.md`, `sessions/tasks.md`. Those are either protected
 config (need the gate/approval flow to edit) or the user's own project
-state — a docs refresh has no business touching either.
+state â€” a docs refresh has no business touching either.
 
 Report which files were updated and which `.bak` files were created, if
 any, plus whether the AGENTS.md/CLAUDE.md bridge blocks were resynced,
 already up to date, or newly created.
 
-Never invent node/edge/community counts — compute them from what actually
+Never invent node/edge/community counts â€” compute them from what actually
 ran, or state plainly that they're not available yet.
