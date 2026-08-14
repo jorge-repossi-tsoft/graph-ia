@@ -56,6 +56,7 @@ El contexto sobrevive entre sesiones; el agente no arranca de cero cada vez.
 
 - **Anti-patrón — Sesión huérfana:** cada conversación nueva repite exploración ya hecha.
 - Se cumple con: `sessions/progress.md`, `sessions/tasks.md` versionados en disco.
+- **Regla de backlog:** `sessions/tasks.md` se interpreta como grafo dirigido de tareas, no como lista visual. Una tarea con `depends_on`, `blocked_by`, `requires`, `parent` o `prerequisite` solo puede ejecutarse si toda su cadena de IDs esta completada; si algo esta pendiente, salteado, fallido o no validable, la ejecucion se detiene y queda registrada en `sessions/progress.md`.
 
 ### H — Hierarchical
 El grafo se organiza en niveles (comunidades → subgrafos → nodos), y cada nivel arrastra su propio historial de cambios — la trazabilidad no es un log aparte, vive incorporada a la estructura misma.

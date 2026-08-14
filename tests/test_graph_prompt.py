@@ -184,5 +184,60 @@ class GraphPromptTests(unittest.TestCase):
             shutil.rmtree(repo_tmp, ignore_errors=True)
 
 
+    def test_dependencies_block_task_until_prerequisite_is_completed(self):
+        repo_tmp = Path(__file__).resolve().parent / f'_tmp_graph_prompt_{uuid.uuid4().hex}'
+        repo_tmp.mkdir(parents=True, exist_ok=False)
+        try:
+            graph_prompt.create_task(str(repo_tmp), 'Tarea A', {})
+            today = graph_prompt.date.today().strftime('%Y%m%d')
+            id_a = f'T-{today}-001'
+            graph_prompt.create_task(str(repo_tmp), 'Tarea B', {'depends_on': id_a})
+
+            with self.assertRaises(graph_prompt.DependencyBlockedError):
+                graph_prompt.complete_tasks(str(repo_tmp), '2', 'no debe correr')
+
+            progress_path = repo_tmp / '.agents' / 'graph' / 'sessions' / 'progress.md'
+            progress_text = progress_path.read_text(encoding='utf-8')
+            self.assertIn('Stop: dependency-block', progress_text)
+            self.assertIn(f'Prerrequisito: {id_a}', progress_text)
+            self.assertIn('Estado del prerrequisito: pending', progress_text)
+        finally:
+            shutil.rmtree(repo_tmp, ignore_errors=True)
+
+    def test_run_all_respects_dependency_order_when_prerequisite_is_completed_first(self):
+        repo_tmp = Path(__file__).resolve().parent / f'_tmp_graph_prompt_{uuid.uuid4().hex}'
+        repo_tmp.mkdir(parents=True, exist_ok=False)
+        try:
+            graph_prompt.create_task(str(repo_tmp), 'Tarea A', {})
+            today = graph_prompt.date.today().strftime('%Y%m%d')
+            id_a = f'T-{today}-001'
+            graph_prompt.create_task(str(repo_tmp), 'Tarea B', {'depends_on': id_a})
+
+            completed = graph_prompt.complete_tasks(str(repo_tmp), 'all', 'cadena completa')
+            self.assertEqual(completed, ['Tarea A', 'Tarea B'])
+        finally:
+            shutil.rmtree(repo_tmp, ignore_errors=True)
+
+    def test_skipped_dependency_blocks_downstream_task_until_replanned(self):
+        repo_tmp = Path(__file__).resolve().parent / f'_tmp_graph_prompt_{uuid.uuid4().hex}'
+        repo_tmp.mkdir(parents=True, exist_ok=False)
+        try:
+            graph_prompt.create_task(str(repo_tmp), 'Tarea A', {})
+            today = graph_prompt.date.today().strftime('%Y%m%d')
+            id_a = f'T-{today}-001'
+            graph_prompt.create_task(str(repo_tmp), 'Tarea B', {'blocked_by': id_a})
+            graph_prompt.skip_task(str(repo_tmp), id_a, 'se replantea el alcance')
+
+            with self.assertRaises(graph_prompt.DependencyBlockedError):
+                graph_prompt.complete_tasks(str(repo_tmp), None, 'no debe correr')
+
+            progress_path = repo_tmp / '.agents' / 'graph' / 'sessions' / 'progress.md'
+            progress_text = progress_path.read_text(encoding='utf-8')
+            self.assertIn('Estado del prerrequisito: skipped', progress_text)
+            self.assertIn('requiere re-planificacion', progress_text)
+        finally:
+            shutil.rmtree(repo_tmp, ignore_errors=True)
+
+
 if __name__ == '__main__':
     unittest.main()

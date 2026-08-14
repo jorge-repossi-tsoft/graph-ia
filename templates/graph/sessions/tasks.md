@@ -46,6 +46,22 @@ Cada tarea que un agente tome de acá debe, al completarse, dejar rastro en
 Comandos de backlog soportados: `#task`, `#run`, `#run-all`, `#done`,
 `#skip`, `#note` — ver `graph/README.md` para la convención completa.
 
+
+## Backlog Execution Policy
+El backlog se interpreta como un grafo dirigido de dependencias, no como una
+lista plana. El orden visual es solo presentacion: no autoriza ejecutar una
+tarea si sus prerrequisitos no estan completos.
+
+Antes de ejecutar `#run`, `#run-all` o `#done`, el runner debe leer y unir los
+campos `depends_on`, `blocked_by`, `requires`, `parent` y `prerequisite`. Cada
+valor debe apuntar a IDs estables `T-YYYYMMDD-NNN`. Si una dependencia falta,
+esta pendiente, fallo, fue salteada o no puede validarse con certeza, la tarea
+queda bloqueada y el evento debe registrarse en `progress.md`.
+
+`#run-all` solo puede avanzar por tareas cuya clausura de dependencias este
+completada. Si encuentra una rama bloqueada o una tarea salteada aguas arriba,
+debe frenar esa ejecucion hasta que una persona o planner re-planifique la rama.
+
 ## Metadata de tarea
 Las tareas pueden llevar un bloque de metadata indentado debajo de la línea de
 la tarea, para que los agentes y el gestor del backlog puedan leer campos como

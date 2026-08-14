@@ -85,6 +85,14 @@ rastro en `.agents/graph/sessions/progress.md`. El set mínimo de comandos:
 En todos los casos `N` es la posición dentro de las pendientes; si se
 omite, aplica sobre la primera.
 
+El backlog no es una lista plana: es un grafo de dependencias. Las tareas
+pueden declarar `depends_on`, `blocked_by`, `requires`, `parent` o
+`prerequisite` apuntando a IDs estables `T-YYYYMMDD-NNN`. `#run`, `#done` y
+`#run-all` solo pueden ejecutar una tarea si toda su cadena de prerrequisitos
+esta completada. Si una dependencia esta pendiente, salteada, fallida, falta o
+no puede validarse, el runner debe frenar y registrar el bloqueo en
+`.agents/graph/sessions/progress.md`.
+
 Ejemplos:
 
 ```text

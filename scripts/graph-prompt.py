@@ -43,7 +43,7 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 TASKS_FILE_REL = Path(".agents") / "graph" / "sessions" / "tasks.md"
 PROGRESS_FILE_REL = Path(".agents") / "graph" / "sessions" / "progress.md"
@@ -73,6 +73,11 @@ TASKS_SKELETON = """# Tasks
 ### Tareas completadas (referenciar en `progress.md`)
 
 ### Tareas salteadas (con motivo)
+
+## Backlog Execution Policy
+El backlog se interpreta como un grafo dirigido de dependencias, no como una lista plana.
+Antes de ejecutar, validar `depends_on`, `blocked_by`, `requires`, `parent` y `prerequisite`.
+Si una dependencia no esta completed, frenar y registrar el bloqueo en `progress.md`.
 """
 
 PROGRESS_SKELETON = """# Progress
@@ -124,6 +129,7 @@ SKIP_PATTERN = re.compile(rf"^\s*#skip(?:\s+(\d+|{TASK_ID_RE}))?(?:\s*[:\-]\s*(.
 NOTE_PATTERN = re.compile(rf"^\s*#note(?:\s+(\d+|{TASK_ID_RE})(?=\s|[:\-]))?\s*[:\-]?\s*(.+)$", re.IGNORECASE | re.DOTALL)
 METADATA_PATTERN = re.compile(r"(?P<key>[a-zA-Z_][\w\-]*):(?P<value>\"[^\"]+\"|[^\s]+)")
 METADATA_LINE_PATTERN = re.compile(r"^\s{4,}-\s+(?P<key>[a-zA-Z_][\w\-]*):\s*(?P<value>\"[^\"]+\"|.+)$")
+DEPENDENCY_FIELDS = {"depends_on", "blocked_by", "requires", "parent", "prerequisite"}
 
 
 @dataclass
@@ -133,6 +139,15 @@ class TaskEntry:
     text: str
     done: bool
     metadata: Dict[str, str]
+    status: str = "pending"
+
+
+class DependencyBlockedError(ValueError):
+    def __init__(self, message: str, task: str, dependency: str, state: str) -> None:
+        super().__init__(message)
+        self.task = task
+        self.dependency = dependency
+        self.state = state
 
 
 def ensure_file(path: Path, content: str) -> None:
@@ -238,6 +253,72 @@ def find_task_by_id(entries: List["TaskEntry"], task_id_value: str) -> Optional[
         if entry.metadata.get("id", "").upper() == normalized:
             return entry
     return None
+
+
+def dependency_ids(task: TaskEntry) -> List[str]:
+    deps: List[str] = []
+    for field in DEPENDENCY_FIELDS:
+        value = task.metadata.get(field)
+        if not value:
+            continue
+        found = [match.group(0).upper() for match in TASK_ID_PATTERN.finditer(value)]
+        if not found:
+            raise ValueError(
+                f"La tarea {task.metadata.get('id', task.text)} declara {field} pero no usa un ID estable T-YYYYMMDD-NNN."
+            )
+        deps.extend(found)
+    return list(dict.fromkeys(deps))
+
+
+def task_identity(task: TaskEntry) -> str:
+    return task.metadata.get("id") or task.text
+
+
+def build_task_index(lines: List[str]) -> Dict[str, TaskEntry]:
+    index: Dict[str, TaskEntry] = {}
+    for task in parse_tasks_with_metadata(lines):
+        task_id_value = task.metadata.get("id", "").upper()
+        if task_id_value:
+            index[task_id_value] = task
+    return index
+
+
+def validate_task_dependencies(
+    task: TaskEntry,
+    task_index: Dict[str, TaskEntry],
+    stack: Optional[Set[str]] = None,
+) -> None:
+    stack = set(stack or set())
+    current_id = task.metadata.get("id", "").upper()
+    if current_id:
+        if current_id in stack:
+            raise ValueError(f"Dependencia ciclica detectada en {current_id}.")
+        stack.add(current_id)
+
+    for dep_id in dependency_ids(task):
+        dependency = task_index.get(dep_id)
+        if dependency is None:
+            raise DependencyBlockedError(
+                f"No se puede ejecutar {task_identity(task)}: la dependencia {dep_id} no existe en el backlog.",
+                task_identity(task),
+                dep_id,
+                "missing",
+            )
+        if dependency.status == "skipped":
+            raise DependencyBlockedError(
+                f"No se puede ejecutar {task_identity(task)}: la dependencia {dep_id} fue salteada y requiere re-planificacion.",
+                task_identity(task),
+                dep_id,
+                "skipped",
+            )
+        if dependency.status != "completed":
+            raise DependencyBlockedError(
+                f"No se puede ejecutar {task_identity(task)}: la dependencia {dep_id} esta {dependency.status}, no completed.",
+                task_identity(task),
+                dep_id,
+                dependency.status,
+            )
+        validate_task_dependencies(dependency, task_index, stack)
 
 
 def sanitize_filename(node_id: str) -> str:
@@ -356,13 +437,19 @@ def parse_tasks_with_metadata(lines: List[str], offset: int = 0) -> List[TaskEnt
 
     for index, line in enumerate(lines, start=offset):
         stripped = line.strip()
-        if stripped.startswith("- [ ] ") or stripped.startswith("- [x] "):
-            done = stripped.startswith("- [x] ")
+        if stripped.startswith("- [ ] ") or stripped.startswith("- [x] ") or stripped.startswith("- [-] "):
+            if stripped.startswith("- [x] "):
+                status = "completed"
+            elif stripped.startswith("- [-] "):
+                status = "skipped"
+            else:
+                status = "pending"
+            done = status == "completed"
             text = stripped[6:]
             if current is not None:
                 current.end_index = index
                 entries.append(current)
-            current = TaskEntry(start_index=index, end_index=index + 1, text=text, done=done, metadata={})
+            current = TaskEntry(start_index=index, end_index=index + 1, text=text, done=done, metadata={}, status=status)
             continue
 
         if current is not None:
@@ -560,6 +647,42 @@ def append_run_history(
     return lines
 
 
+def append_dependency_stop_history(
+    lines: List[str],
+    run_target: str,
+    error: DependencyBlockedError,
+    backlog_count: int,
+    run_date: str,
+    branch_stop: bool,
+) -> List[str]:
+    section_start = find_section(lines, SECTION_HISTORY_HEADER)
+    if section_start is None:
+        if lines and not lines[-1].endswith("\n"):
+            lines.append("\n")
+        lines.append(SECTION_HISTORY_HEADER + "\n")
+        lines.append("\n")
+        section_start = len(lines) - 2
+
+    insert_at = find_section_end(lines, section_start)
+    scope = "rama de dependencias" if branch_stop else "una tarea"
+    timestamp = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+    history_entry = [
+        f"### {run_date}\n",
+        f"- Comando: `{run_target}`\n",
+        "- Stop: dependency-block\n",
+        f"- Tarea intentada: {error.task}\n",
+        f"- Prerrequisito: {error.dependency}\n",
+        f"- Estado del prerrequisito: {error.state}\n",
+        f"- Motivo: {error}\n",
+        f"- Alcance: {scope}\n",
+        f"- Timestamp: {timestamp}\n",
+        f"- Backlog restante: {backlog_count}\n",
+        "\n",
+    ]
+    lines[insert_at:insert_at] = history_entry
+    return lines
+
+
 def complete_tasks(root: str, run_target: Optional[str], summary: str, command: str = "#run") -> List[str]:
     tasks_path = Path(root) / TASKS_FILE_REL
     progress_path = Path(root) / PROGRESS_FILE_REL
@@ -568,12 +691,35 @@ def complete_tasks(root: str, run_target: Optional[str], summary: str, command: 
 
     lines = read_lines(tasks_path)
     pending = [entry for entry in get_section_task_lines(lines, SECTION_PENDING) if not entry.done]
+    task_index = build_task_index(lines)
     targets = resolve_run_target(pending, run_target)
     completed_texts: List[str] = []
 
     for task in targets:
+        try:
+            validate_task_dependencies(task, task_index)
+        except DependencyBlockedError as exc:
+            pending_count = len([entry for entry in get_section_task_lines(lines, SECTION_PENDING) if not entry.done])
+            progress_lines = read_lines(progress_path)
+            run_date = today_iso()
+            progress_lines = update_progress_metadata(progress_lines, pending_count, run_date)
+            progress_lines = append_dependency_stop_history(
+                progress_lines,
+                f"{command} {run_target or ''}".strip(),
+                exc,
+                pending_count,
+                run_date,
+                len(targets) > 1,
+            )
+            write_lines(progress_path, progress_lines)
+            raise
         line_idx = task.start_index
         lines[line_idx] = lines[line_idx].replace("- [ ]", "- [x]", 1)
+        task.status = "completed"
+        task.done = True
+        task_id_value = task.metadata.get("id", "").upper()
+        if task_id_value:
+            task_index[task_id_value] = task
         completed_texts.append(task.text)
 
     for text in completed_texts:
