@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build_release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build release bundle
+        run: python scripts/build-release.py --versioned
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: graph-ia-release
+          path: dist/*.zip
+          if-no-files-found: error

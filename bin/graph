@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# graph — wrapper corto para scripts/template-ia.py (Linux/macOS).
+# graph — wrapper corto para scripts/graph-ia.py (Linux/macOS).
 #
-# Resuelve template-ia.py en este orden:
-#   1. TEMPLATE_IA_SCRIPT (ruta directa al script)
-#   2. TEMPLATE_IA_ROOT/scripts/template-ia.py
-#   3. ../scripts/template-ia.py relativo a este wrapper (checkout local)
+# Resuelve graph-ia.py en este orden:
+#   1. GRAPH_IA_SCRIPT (ruta directa al script)
+#   2. GRAPH_IA_ROOT/scripts/graph-ia.py
+#   3. ../scripts/graph-ia.py relativo a este wrapper (checkout local)
 #   4. la instalación de marketplace activa de Codex ('codex plugin list')
 # y lo ejecuta con el primer intérprete de Python 3 disponible, pasando el
 # directorio actual como repo_root.
@@ -14,22 +14,22 @@
 set -euo pipefail
 
 resolve_script() {
-  if [[ -n "${TEMPLATE_IA_SCRIPT:-}" && -f "${TEMPLATE_IA_SCRIPT:-}" ]]; then
-    printf '%s\n' "$TEMPLATE_IA_SCRIPT"
+  if [[ -n "${GRAPH_IA_SCRIPT:-}" && -f "${GRAPH_IA_SCRIPT:-}" ]]; then
+    printf '%s\n' "$GRAPH_IA_SCRIPT"
     return 0
   fi
 
-  if [[ -n "${TEMPLATE_IA_ROOT:-}" && -f "${TEMPLATE_IA_ROOT}/scripts/template-ia.py" ]]; then
-    printf '%s\n' "${TEMPLATE_IA_ROOT}/scripts/template-ia.py"
+  if [[ -n "${GRAPH_IA_ROOT:-}" && -f "${GRAPH_IA_ROOT}/scripts/graph-ia.py" ]]; then
+    printf '%s\n' "${GRAPH_IA_ROOT}/scripts/graph-ia.py"
     return 0
   fi
 
-  # Checkout local del repo del plugin: bin/graph -> ../scripts/template-ia.py
+  # Checkout local del repo del plugin: bin/graph -> ../scripts/graph-ia.py
   local script_dir local_script
   script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-  local_script="$script_dir/../scripts/template-ia.py"
+  local_script="$script_dir/../scripts/graph-ia.py"
   if [[ -f "$local_script" ]]; then
-    printf '%s\n' "$(cd "$(dirname "$local_script")" && pwd)/template-ia.py"
+    printf '%s\n' "$(cd "$(dirname "$local_script")" && pwd)/graph-ia.py"
     return 0
   fi
 
@@ -39,14 +39,14 @@ resolve_script() {
     output="$(codex plugin list 2>/dev/null || true)"
     in_block=0
     while IFS= read -r line; do
-      if [[ "$line" =~ ^[[:space:]]*Marketplace[[:space:]]\`?template-ia\`?[[:space:]]*$ ]]; then
+      if [[ "$line" =~ ^[[:space:]]*Marketplace[[:space:]]\`?graph-ia\`?[[:space:]]*$ ]]; then
         in_block=1
         continue
       fi
       if [[ $in_block -eq 1 && "$line" =~ ^[[:space:]]*(/[^[:space:]].*)$ ]]; then
         marketplace_root="${BASH_REMATCH[1]}"
-        if [[ -n "$marketplace_root" && -f "$marketplace_root/scripts/template-ia.py" ]]; then
-          printf '%s\n' "$marketplace_root/scripts/template-ia.py"
+        if [[ -n "$marketplace_root" && -f "$marketplace_root/scripts/graph-ia.py" ]]; then
+          printf '%s\n' "$marketplace_root/scripts/graph-ia.py"
           return 0
         fi
       fi
@@ -72,15 +72,15 @@ resolve_python() {
 
 if ! SCRIPT_PATH="$(resolve_script)"; then
   cat >&2 <<'EOF'
-No encontré template-ia.py.
+No encontré graph-ia.py.
 
 Probé estas opciones:
-- TEMPLATE_IA_SCRIPT
-- TEMPLATE_IA_ROOT/scripts/template-ia.py
-- ../scripts/template-ia.py relativo a este wrapper
+- GRAPH_IA_SCRIPT
+- GRAPH_IA_ROOT/scripts/graph-ia.py
+- ../scripts/graph-ia.py relativo a este wrapper
 - la instalación de Codex vía 'codex plugin list'
 
-Instalá el plugin o definí TEMPLATE_IA_ROOT/TEMPLATE_IA_SCRIPT.
+Instalá el plugin o definí GRAPH_IA_ROOT/GRAPH_IA_SCRIPT.
 EOF
   exit 1
 fi

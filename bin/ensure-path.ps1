@@ -1,4 +1,4 @@
-﻿#Requires -Version 5.1
+#Requires -Version 5.1
 <#
 .SYNOPSIS
   Registra una carpeta en el PATH de usuario y en el profile de PowerShell.
@@ -73,7 +73,7 @@ function Add-ProfileEntry {
   $existing = Get-Content -LiteralPath $profilePath -Raw -Encoding UTF8 -ErrorAction SilentlyContinue
   if ($existing -and $existing.Contains($Dir)) { return $false }
 
-  $marker = "# template-ia: agregado automáticamente para el comando 'graph'"
+  $marker = "# graph-ia: agregado automáticamente para el comando 'graph'"
   $line = "if (`$env:Path -notlike ('*' + '$Dir' + '*')) { `$env:Path += ';$Dir' }"
   Add-Content -LiteralPath $profilePath -Value "`n$marker`n$line" -Encoding UTF8
   return $true

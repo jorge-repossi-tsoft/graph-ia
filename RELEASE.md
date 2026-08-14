@@ -1,6 +1,6 @@
 # Release
 
-Checklist corta para publicar `template-ia` sin arrastrar artefactos locales.
+Checklist corta para publicar `graph-ia` sin arrastrar artefactos locales.
 
 1. Actualizar la versi?n en ambos manifests:
    `python3 scripts/bump-version.py 3.1.1`
@@ -9,7 +9,7 @@ Checklist corta para publicar `template-ia` sin arrastrar artefactos locales.
 3. Generar el bundle limpio y el bundle versionado:
    `python3 scripts/build-release.py --versioned`
 4. Verificar que exista el zip final:
-   `dist/template-ia-release-v3.1.1.zip`
+   `dist/graph-ia-release-v3.1.1.zip`
 5. Publicar usando ese zip y crear el tag sugerido:
    `v3.1.1`
 

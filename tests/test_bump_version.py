@@ -23,7 +23,7 @@ class BumpVersionTests(unittest.TestCase):
 
     def test_update_manifest_version_writes_new_version(self):
         tmp_path = Path(__file__).resolve().parent / f'_tmp_manifest_{uuid.uuid4().hex}.json'
-        tmp_path.write_text(json.dumps({'name': 'template-ia', 'version': '0.0.1'}), encoding='utf-8')
+        tmp_path.write_text(json.dumps({'name': 'graph-ia', 'version': '0.0.1'}), encoding='utf-8')
         try:
             bump_version.update_manifest_version(tmp_path, '3.1.1')
             data = json.loads(tmp_path.read_text(encoding='utf-8'))

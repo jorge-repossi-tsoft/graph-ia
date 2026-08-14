@@ -56,7 +56,7 @@ TASKS_SKELETON = """# Tasks
 > tareas como completadas y actualizan `progress.md`. `#skip` saltea una
 > tarea dejando registro, y `#note` agrega una nota fechada a una tarea.
 
-## Instalacion del patron (marcar al hacer template-ia)
+## Instalacion del patron (marcar al hacer graph-ia)
 - [ ] Modo detectado: greenfield | brownfield
 - [ ] Arbol de carpetas creado
 - [ ] (brownfield only) Indexacion inicial completa - bloqueante, ningun agente opera antes de esto

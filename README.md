@@ -127,10 +127,10 @@ El comando se registra solo en tu PATH de usuario la primera vez que usás
 el plugin (vía hook en Claude Code/Codex, o al correr `install.sh`) — solo
 hace falta abrir una terminal nueva esa primera vez.
 
-El wrapper busca `template-ia.py` en este orden:
+El wrapper busca `graph-ia.py` en este orden:
 
-1. `TEMPLATE_IA_SCRIPT`
-2. `TEMPLATE_IA_ROOT\scripts\template-ia.py`
+1. `GRAPH_IA_SCRIPT`
+2. `GRAPH_IA_ROOT\scripts\graph-ia.py`
 3. el checkout local del repo del plugin
 4. la instalación activa de Codex vía `codex plugin list`
 
@@ -143,7 +143,7 @@ graph --mode=greenfield
 graph --mode=brownfield --migrate
 ```
 
-Si no encuentra `template-ia.py`, falla con un mensaje claro para que puedas instalar el plugin o apuntar el checkout correcto sin tocar rutas fijas.
+Si no encuentra `graph-ia.py`, falla con un mensaje claro para que puedas instalar el plugin o apuntar el checkout correcto sin tocar rutas fijas.
 
 ## Contribuir
 
@@ -160,6 +160,6 @@ To build a clean bundle for publishing, run `python3 scripts/build-release.py`.
 The output is source-only and excludes runtime artifacts like `.agents/` and
 local test output.
 
-The release script also supports `--versioned`, which emits a sibling bundle named with the plugin version (for example `template-ia-release-v3.1.0`) and validates that both plugin manifests share the same semver first.
+The release script also supports `--versioned`, which emits a sibling bundle named with the plugin version (for example `graph-ia-release-v3.1.0`) and validates that both plugin manifests share the same semver first.
 
 For the end-to-end publishing checklist, see [RELEASE.md](./RELEASE.md).

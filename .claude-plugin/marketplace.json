@@ -1,5 +1,5 @@
 {
-  "name": "template-ia",
+  "name": "graph-ia",
   "owner": {
     "name": "SudacaDev"
   },
@@ -8,7 +8,7 @@
   },
   "plugins": [
     {
-      "name": "template-ia",
+      "name": "graph-ia",
       "source": ".",
       "description": "GRAPH pattern bootstrapper: versioned hierarchical knowledge graph with human-review gates, autonomous-loop circuit breakers, and a built-in stack-agnostic code indexer. Greenfield or brownfield, any language."
     }

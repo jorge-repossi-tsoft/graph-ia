@@ -94,4 +94,4 @@ Una respuesta "no" no es fracaso — es una señal concreta de qué falta implem
 
 ## Modo de instalación
 
-Este documento asume que el árbol de `graph/` ya fue generado por `template-ia`. Ver `sessions/tasks.md` para el estado de instalación de este proyecto puntual (greenfield o brownfield, con o sin reconciliación de historial).
+Este documento asume que el árbol de `graph/` ya fue generado por `graph-ia`. Ver `sessions/tasks.md` para el estado de instalación de este proyecto puntual (greenfield o brownfield, con o sin reconciliación de historial).

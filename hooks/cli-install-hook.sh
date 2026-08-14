@@ -14,9 +14,9 @@
 # administrador — todo queda a nivel de usuario.
 #
 # Por qué agregar bin/ del plugin en vez de copiar los shims a otro lado:
-# graph.ps1 y bin/graph resuelven template-ia.py con una ruta relativa a su
-# propia ubicación (../scripts/template-ia.py) como uno de los candidatos.
-# Copiar los archivos a una carpeta separada (ej. ~/.template-ia/bin) rompe
+# graph.ps1 y bin/graph resuelven graph-ia.py con una ruta relativa a su
+# propia ubicación (../scripts/graph-ia.py) como uno de los candidatos.
+# Copiar los archivos a una carpeta separada (ej. ~/.graph-ia/bin) rompe
 # esa ruta relativa y además crea una segunda copia que se desactualiza en
 # cuanto el plugin se actualiza. Apuntar el PATH directo a $PLUGIN_ROOT/bin
 # evita ambos problemas: una sola fuente de verdad, siempre al día.
@@ -71,7 +71,7 @@ add_path_to_rc() {
   fi
   {
     echo ""
-    echo "# template-ia: agregado automáticamente para el comando 'graph'"
+    echo "# graph-ia: agregado automáticamente para el comando 'graph'"
     echo "export PATH=\"$dir:\$PATH\""
   } >> "$rc_file" 2>/dev/null
 }

@@ -1,5 +1,5 @@
-﻿#!/usr/bin/env python3
-"""Build a clean release bundle for the template-ia plugin.
+#!/usr/bin/env python3
+"""Build a clean release bundle for the graph-ia plugin.
 
 The bundle includes source files only and excludes runtime output such as
 .agents/, caches, temp folders, and local test artifacts.
@@ -14,7 +14,7 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_OUT = ROOT / "dist" / "template-ia-release"
+DEFAULT_OUT = ROOT / "dist" / "graph-ia-release"
 CLAUDE_PLUGIN_MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
 CODEX_PLUGIN_MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 
@@ -120,7 +120,7 @@ def copy_tree(src: Path, dst: Path) -> list[str]:
 
 def write_manifest(out_dir: Path, version: str, copied: list[str]) -> None:
     manifest = {
-        "name": "template-ia",
+        "name": "graph-ia",
         "version": version,
         "suggested_tag": f"v{version}",
         "source_root": str(ROOT).replace("\\", "/"),
@@ -178,7 +178,7 @@ def duplicate_versioned_bundle(out_dir: Path, version: str) -> Path:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build a clean release bundle for template-ia.")
+    parser = argparse.ArgumentParser(description="Build a clean release bundle for graph-ia.")
     parser.add_argument("--out", default=str(DEFAULT_OUT), help="Output directory for the release bundle")
     parser.add_argument(
         "--versioned",
