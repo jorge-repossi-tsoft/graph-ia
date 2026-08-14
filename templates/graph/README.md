@@ -107,6 +107,11 @@ chica para cuando quieras ajustar algo puntual.
 - Cuando la tarea trae metadata, el script la guarda como un bloque indentado debajo de la linea de la tarea.
 - `#run` marca la siguiente tarea pendiente, o la que indiques con `#run 2` / `#run T-20260807-002` / `#run all`, y actualiza `.agents/graph/sessions/progress.md`.
 - `#run-all` es el alias directo de `#run all`: cierra todas las pendientes.
+
+El backlog se ejecuta como grafo de dependencias, no como lista plana. Antes de
+`#run`, `#done` o `#run-all`, el runner debe validar `depends_on`, `blocked_by`,
+`requires`, `parent` y `prerequisite`; si cualquier prerrequisito no esta
+completado, se frena la ejecucion y se registra el bloqueo en `progress.md`.
 - `#done [N|ID]` marca una tarea como completada sin ejecutarla (útil si ya se resolvió por otro camino); registra el cierre en `progress.md`.
 - `#skip [N|ID]: <motivo>` saca la tarea de pendientes y la mueve a `### Tareas salteadas (con motivo)` con motivo y fecha.
 - `#note [N|ID]: <texto>` agrega una nota fechada debajo de la tarea, sin cambiar su estado.

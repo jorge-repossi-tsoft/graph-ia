@@ -14,6 +14,8 @@ Este proyecto sigue el patrón **GRAPH**. Antes de actuar:
 8. Si el usuario escribe un mensaje que empieza con `#run`, ejecutá las tareas pendientes de `.agents/graph/sessions/tasks.md` en orden, una por vez. Podés referenciar una tarea puntual por su posición entre pendientes (`#run 2`) o por su ID estable (`#run T-20260807-002`) — preferí el ID cuando la tarea se mencionó en un turno anterior, porque la posición se corre si de por medio se completó o salteó otra. `#run-all` ejecuta todas las pendientes de una vez.
 9. Si el usuario escribe `#done [N|ID]`, marcá esa tarea (o la primera pendiente si no hay número ni ID) como completada `[x]` sin ejecutarla, y registrá el cierre en `progress.md`. Si escribe `#skip [N|ID]: <motivo>`, sacala de pendientes y movela a `### Tareas salteadas (con motivo)` en `tasks.md`, con motivo y fecha, dejando también rastro en `progress.md`. Si escribe `#note [N|ID]: <texto>`, agregá la nota fechada como línea indentada debajo de la tarea, sin cambiar su estado. En los tres casos, `N` es la posición actual entre pendientes e `ID` es el `T-YYYYMMDD-NNN` que le asignaste al crearla — cualquiera de los dos formatos es válido.
 
+10. Trata el backlog como un grafo de dependencias, no como una lista plana. Antes de ejecutar `#run`, `#run-all` o `#done`, valida `depends_on`, `blocked_by`, `requires`, `parent` y `prerequisite`; toda dependencia debe existir y estar completada. Si una dependencia esta pendiente, fallo, fue salteada, falta o no se puede validar, frena la ejecucion, no continues con tareas downstream y registra el bloqueo en `.agents/graph/sessions/progress.md`.
+
 <!-- graph-ia:legacy-line -->
 ## Bridges específicos por herramienta
 - `CLAUDE.md` — bridge para Claude Code, apunta acá.
