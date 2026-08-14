@@ -93,7 +93,7 @@ es un proyecto viejo sin relación con OpenAI)
 ### 1. Agregar el marketplace
 
 ```bash
-codex plugin marketplace add cloudersdesarrollos/graph-ia
+codex plugin marketplace add jorge-repossi-tsoft/graph-ia
 ```
 
 ### 2. Instalar el plugin
